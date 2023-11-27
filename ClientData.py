@@ -1,0 +1,31 @@
+from typing import List, Any
+
+
+class ClientData:
+
+    def __init__(self, name, ip_address, udp_socket, tcp_socket, **_):
+        self.name = name
+        self.ip_address = ip_address
+        self.udp_socket = udp_socket
+        self.tcp_socket = tcp_socket
+        self.available_files = []
+
+    def __str__(self):
+        return f"""\
+        CLIENT DATA
+        RQ:\t{self.rq}
+        NAME:\t{self.name}
+        IP:\t{self.ip_address}
+        UDP:\t{self.udp_socket}
+        TCP:\t{self.tcp_socket}
+        LIST OF AVAILABLE FILES:\t{self.available_files}
+        """
+
+    def to_csv_row(self):
+        return [self.name, self.ip_address, self.udp_socket, self.tcp_socket, self.available_files]
+
+    def set_modification(self, ip_address, udp_socket, tcp_socket):
+        self.ip_address = ip_address
+        self.udp_socket = udp_socket
+        self.tcp_socket = tcp_socket
+
