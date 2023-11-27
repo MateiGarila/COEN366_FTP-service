@@ -4,7 +4,6 @@ import os
 
 
 class Database:
-
     DATABASE_PATH = "ClientDatabase.csv"
 
     def open_database(self):
@@ -21,10 +20,59 @@ class Database:
         with open(self.DATABASE_PATH, mode="a", newline="") as database:
             database.write(json.dumps(client.__dict__) + "\n")
 
-    # NEEDED:
-    # def remove_client
-    # def update_client
-    # def publish_files
+    def remove_client(self, name):
+        clients = []
+        new_clients_list = []
+
+        with open(self.DATABASE_PATH, mode="r") as database:
+            clients = (client.rstrip() for client in database)
+            clients = (client for client in clients if client)
+            new_clients_list = [client for client in clients if json.loads(client)["name"] != name]
+
+        with open(self.DATABASE_PATH, mode="w", newline="") as database:
+            for client in new_clients_list:
+                database.write(client + "\n")
+
+    def update_client(self, updated_client):
+        clients = []
+        new_clients_list = []
+
+        with open(self.DATABASE_PATH, mode="r") as database:
+            clients = (client.rstrip() for client in database)
+            clients = (client for client in clients if client)
+
+            for client_json in clients:
+                if client_json:
+                    client = json.loads(client_json)
+                    if client["name"] == updated_client.name:
+                        new_clients_list.append(json.dumps(client))
+                    else:
+                        new_clients_list.append(client_json)
+
+        with open(self.DATABASE_PATH, mode="w", newline="") as database:
+            for client in new_clients_list:
+                database.write(client + "\n")
+
+    def publish_files(self, name, files):
+        clients = []
+        new_clients_list = []
+
+        with open(self.DATABASE_PATH, mode="r") as database:
+            clients = (client.rstrip() for client in database)
+            clients = (client for client in clients in database)
+
+            for client_json in clients:
+                if client_json:
+                    client = json.loads(client_json)
+                    if client["name"] == name:
+                        client["available_files"] = files
+                        new_clients_list.append(json.dumps(client))
+                    else:
+                        new_clients_list.append(client_json)
+
+        with open(self.DATABASE_PATH, mode="w", newline="") as database:
+            for client in new_clients_list:
+                database.write(client + "\n")
 
     def delete_database(self):
         if os.path.exists(self.DATABASE_PATH):
