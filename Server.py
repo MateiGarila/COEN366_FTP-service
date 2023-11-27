@@ -23,6 +23,7 @@ class Server(Thread):
 
     # Still need to code the "def run(self)" function
 
+
 def main():
     server = Server()
     server.daemon = True
