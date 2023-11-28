@@ -1,20 +1,27 @@
 import socket
 import os
 import sys
+import threading
 
 
 def main():
-    s = socket.socket()
+    client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     port = 12000
-    s.connect(('127.0.0.1', port))
+    client.connect(('127.0.0.1', port))
 
-    commandList = ("'put' to UPLOAD a file\n 'get' to DOWNLOAD a file\n 'summary' to get the maximum, minimum and "
-                   "average of the numbers of the specified file\n 'change' to UPDATE the name of a specified file\n "
-                   "'help' to receive a list of commands \n 'exit' to break connection with server")
-    print(s.recv(1024))
+    commandList = ("'put' to UPLOAD a file\n'get' to DOWNLOAD a file\n'summary' to get the maximum, minimum and "
+                   "average of the numbers of the specified file\n'change' to UPDATE the name of a specified file\n"
+                   "'help' to receive a list of commands \n'exit' to break connection with server")
+
+    alias = input(client.recv(1024).decode())
+    alias_message = f'{alias}: {input("")}'
+    client.send(alias_message.encode('utf-8'))
+    print(client.recv(1024).decode())
 
     while True:
         choice = input("Possible commands: \n\n" + commandList + "\n\nFTP-Client>")
+
+        client_send(client, choice)
 
         if choice == 'put':
             print("put selected")
@@ -33,10 +40,14 @@ def main():
 
         if choice == 'exit':
             print("Exit selected")
-            s.close()
+            client.close()
             sys.exit()
 
-    s.close()
+    client.close()
+
+
+def client_send(client, message):
+    client.send(message.encode('utf-8'))
 
 
 if __name__ == '__main__':
