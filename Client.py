@@ -1,12 +1,19 @@
 import socket
 # import os
 import sys
+import threading
 
 PUT_OPCODE = '000'
 GET_OPCODE = '001'
 CHANGE_OPCODE = '010'
 SUMMARY_OPCODE = '011'
 HELP_OPCODE = '100'
+
+
+def handle_server(server):
+    while True:
+        message = server.recv(4096).decode()
+        print(message)
 
 
 def get_OPCODE(command_str):
@@ -34,19 +41,20 @@ def get_fileNameLength(fileName):
 
 
 def main():
+    # DGRAM = UDP
+    # client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    # STREAM = TCP
     client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     port = 12000
     client.connect(('127.0.0.1', port))
-
-    # This will have to be transferred to the server-side
-    commandList = ("Possible commands: \n\n'put' to UPLOAD a file\n'get' to DOWNLOAD a file\n'summary' to get the "
-                   "maximum, minimum and average of the numbers of the specified file\n'change' to UPDATE the name of "
-                   "a specified file\n'help' to receive a list of commands \n'exit' to break connection with server")
 
     alias = input(client.recv(1024).decode())
     alias_message = f'{alias}: {input("")}'
     client.send(alias_message.encode('utf-8'))
     print(client.recv(1024).decode())
+
+    thread = threading.Thread(target=handle_server, args=(client,))
+    thread.start()
 
     while True:
         choice = input("FTP-Client>")
@@ -56,14 +64,16 @@ def main():
         client_send(client, opcode)
 
         if opcode != 'Command not supported':
-            print("Command is supported")
+            # print("Command is supported")
 
             if opcode == PUT_OPCODE or opcode == GET_OPCODE or opcode == CHANGE_OPCODE:
-                fileNameLength = get_fileNameLength(command_str[1])
-                print(opcode + fileNameLength)
+                if len(command_str) <= 1:
+                    print("Command is not complete, please specify a file!\n")
+                # fileNameLength = get_fileNameLength(command_str[1])
+                # print(opcode + fileNameLength)
 
-        if choice == 'help':
-            print(commandList)
+            if opcode == HELP_OPCODE:
+                client_send(client, choice)
 
         if choice == 'exit':
             print("Exit selected")
