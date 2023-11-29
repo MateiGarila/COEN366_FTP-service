@@ -20,22 +20,16 @@ def handle_request_help():
 
 # The purpose of this function is to listen to the client's requests and to reply to the client
 def handle_client(client):
+    commandList = ("Possible commands: \n\n'put' to UPLOAD a file\n'get' to DOWNLOAD a file\n'summary' to get the "
+                   "maximum, minimum and average of the numbers of the specified file\n'change' to UPDATE the name of "
+                   "a specified file\n'help' to receive a list of commands \n'exit' to break connection with server")
+
     while True:
-        # try:
         # this 'message' is what the client sent to the server
         message = client.recv(4096).decode()
         print(message)
-
-        reply = handle_request_help()
-        client.send(reply.encode('utf-8'))
-        # except:
-        # index = clients.index(client)
-        # client.remove(client)
-        # client.close()
-        # alias = aliases[index]
-        # print(f'{alias} has disconnected from the server')
-        # aliases.remove(alias)
-        # break
+        if message == 'help':
+            client.send(commandList.encode('utf-8'))
 
 
 # This is where the initial server creation is made

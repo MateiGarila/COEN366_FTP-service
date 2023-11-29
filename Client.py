@@ -2,6 +2,7 @@ import socket
 # import os
 import sys
 import threading
+import time
 
 PUT_OPCODE = '000'
 GET_OPCODE = '001'
@@ -14,6 +15,7 @@ def handle_server(server):
     while True:
         message = server.recv(4096).decode()
         print(message)
+
 
 
 def get_OPCODE(command_str):
@@ -57,7 +59,11 @@ def main():
     thread.start()
 
     while True:
+        time.sleep(1)
         choice = input("FTP-Client>")
+
+        while len(choice) == 0:
+            choice = input("FTP-Client>")
 
         command_str = choice.split()
         opcode = get_OPCODE(command_str[0])
