@@ -16,6 +16,7 @@ def handle_client(client):
             client.remove(client)
             client.close()
             alias = aliases[index]
+            print(f'{alias} has disconnected from the server')
             aliases.remove(alias)
             break
 
