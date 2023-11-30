@@ -17,7 +17,6 @@ def handle_server(server):
         print(message)
 
 
-
 def get_OPCODE(command_str):
     if command_str == 'put':
         return PUT_OPCODE
@@ -33,7 +32,7 @@ def get_OPCODE(command_str):
         return 'Command not supported'
 
 
-def get_fileNameLength(fileName):
+def get_fileName_length(fileName):
     numChars = len(fileName)
     if numChars > 31:
         return 'File name not supported'
@@ -41,6 +40,20 @@ def get_fileNameLength(fileName):
         binaryChars = bin(numChars)
         return binaryChars[2:].zfill(5)
 
+
+def get_fileName_binary(fileName, fileNameLength):
+    numBits = int(fileNameLength) * 8
+    binary_string = ''.join([bin(ord(c))[2:].zfill(8) for c in fileName])
+    return binary_string.zfill(numBits)
+
+
+def get_string_from_binary(binaryStr):
+    binary_bytes = bytearray(int(binaryStr[i:i + 8], 2) for i in range(0, len(binaryStr), 8))
+    file_name = ""
+    for byte in binary_bytes:
+        if byte != 0:
+            file_name += chr(byte)
+    return file_name
 
 def main():
     # DGRAM = UDP
@@ -73,10 +86,14 @@ def main():
             # print("Command is supported")
 
             if opcode == PUT_OPCODE or opcode == GET_OPCODE or opcode == CHANGE_OPCODE:
-                if len(command_str) <= 1:
-                    print("Command is not complete, please specify a file!\n")
-                # fileNameLength = get_fileNameLength(command_str[1])
-                # print(opcode + fileNameLength)
+                if len(command_str) > 1:
+                    fileNameLength = get_fileName_length(command_str[1])
+                    print(opcode + " " + fileNameLength)
+                    fileNameBinary = get_fileName_binary(command_str[1], fileNameLength)
+                    print(fileNameBinary + " ")
+                    print(get_string_from_binary(fileNameBinary))
+                else:
+                    print("\nCommand is not complete, please specify a file!\n")
 
             if opcode == HELP_OPCODE:
                 client_send(client, choice)
