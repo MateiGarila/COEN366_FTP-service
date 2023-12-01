@@ -79,6 +79,24 @@ def get_string_from_binary(binaryStr):
     return string
 
 
+def put_command_builder(command_str):
+    # the 5 bits in the OPCODE byte (FL)
+    fileNameLength = get_fileName_length(command_str[1])
+    print("File name length " + fileNameLength)
+    # this is the binary value of the file name in FL bytes
+    fileNameBinary = get_fileName_binary(command_str[1])
+    print("File name in binary: " + fileNameBinary)
+    # this is just a verification to make sure that the binary string corresponds to inputted file name
+    print(get_string_from_binary(fileNameBinary))
+    # this is the FS of the file to be transferred
+    sizeOfFile = get_file_size(command_str[1])
+    print("Size of file: " + sizeOfFile)
+    file_data = get_file_binary(command_str[1])
+    print("File data: " + file_data)
+    print(get_string_from_binary(file_data))
+    return fileNameLength + fileNameBinary + sizeOfFile + file_data
+
+
 def main():
     # DGRAM = UDP
     # client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -109,25 +127,18 @@ def main():
         client_send(client, opcode)
 
         if opcode != 'Command not supported':
-            if opcode == PUT_OPCODE or opcode == GET_OPCODE or opcode == CHANGE_OPCODE:
-                # this makes sure that the client just doesn't type 'put'
-                if len(command_str) > 1:
-                    # the 5 bits in the OPCODE byte
-                    fileNameLength = get_fileName_length(command_str[1])
-                    print(opcode + " " + fileNameLength)
-                    # this is the binary value of the file name in FL bytes
-                    fileNameBinary = get_fileName_binary(command_str[1])
-                    print(fileNameBinary)
-                    # this is just a verification to make sure that the binary string corresponds to inputted file name
-                    print(get_string_from_binary(fileNameBinary))
-                    # this is the FS of the file to be transferred
-                    sizeOfFile = get_file_size(command_str[1])
-                    print(sizeOfFile)
-                    file_data = get_file_binary(command_str[1])
-                    print(file_data)
-                    print(get_string_from_binary(file_data))
-                else:
-                    print("\nCommand is not complete, please specify a file!\n")
+            # if opcode == PUT_OPCODE or opcode == GET_OPCODE or opcode == CHANGE_OPCODE:
+            if len(command_str) > 1:
+                if opcode == PUT_OPCODE:
+                    if len(command_str[1]) <= 31:
+                        put_request = put_command_builder(command_str)
+                        put_request = opcode + put_request
+                        print(put_request)
+                        client_send(client, put_request)
+                    else:
+                        print("\nThe name of the file exceeds 31 characters, please refactor the file's name\n")
+            else:
+                print("\nCommand is not complete, please specify a file!\n")
 
             if opcode == HELP_OPCODE:
                 client_send(client, choice)
