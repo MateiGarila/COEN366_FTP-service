@@ -60,14 +60,23 @@ def get_file_size(fileName):
     return sizeOfFileBin.zfill(numberOfBits)
 
 
+# This method takes a file's name and converts its contents to binary
+def get_file_binary(fileName):
+    file_path = os.path.join('client_files', fileName)
+    with open(file_path, 'rb') as file:
+        binary_data = ''.join(format(byte, '08b') for byte in file.read())
+
+    return binary_data
+
+
 # This method translates the binary sequence to its string equivalent
 def get_string_from_binary(binaryStr):
     binary_bytes = bytearray(int(binaryStr[i:i + 8], 2) for i in range(0, len(binaryStr), 8))
-    file_name = ""
+    string = ""
     for byte in binary_bytes:
         if byte != 0:
-            file_name += chr(byte)
-    return file_name
+            string += chr(byte)
+    return string
 
 
 def main():
@@ -114,6 +123,9 @@ def main():
                     # this is the FS of the file to be transferred
                     sizeOfFile = get_file_size(command_str[1])
                     print(sizeOfFile)
+                    file_data = get_file_binary(command_str[1])
+                    print(file_data)
+                    print(get_string_from_binary(file_data))
                 else:
                     print("\nCommand is not complete, please specify a file!\n")
 
