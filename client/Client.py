@@ -24,7 +24,10 @@ from ftp_constants import (
 # This method's purpose is to listen to the server's replies and to print them in the console
 def handle_server(server):
     while True:
+        # This is the messages the server sends the client
         message = server.recv(4096).decode()
+        print("Server reply: " + message)
+        # Need better handling
         test = message[8:]
         print(get_string_from_binary(test))
 
@@ -82,7 +85,10 @@ def main():
                 help_request = opcode + get_fileName_length("")
                 client_send(client, help_request)
 
-        if choice == 'exit':
+        else:
+            print('\nThis command is not supported! Please type "help" for a list of commands\n')
+
+        if choice == 'bye':
             print("Exit selected")
             client.close()
             sys.exit()

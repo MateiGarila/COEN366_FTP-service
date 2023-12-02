@@ -18,10 +18,11 @@ aliases = []
 
 
 def handle_request_help():
-    commandList = "Commands are: exit change get help put summary"
+    # commandList the way it is now is exactly 31 bytes long. Which is the maximum allowed to be transferred to the user
+    commandList = "bye change get help put summary"
     commandInBits = get_binary_string(commandList)
     commandBytes = len(commandInBits) // 8
-    bytesInBits = bin(commandBytes)[2:]
+    bytesInBits = bin(commandBytes)[2:].zfill(5)
     return HELP_RESPONSE + bytesInBits + commandInBits
 
 
@@ -45,7 +46,8 @@ def handle_client(client):
         elif opcode == SUMMARY_OPCODE:
             print("SUMMARY")
         elif opcode == HELP_OPCODE:
-            server_send(client, handle_request_help())
+            help_string = handle_request_help()
+            server_send(client, help_string)
 
 
 # This is where the initial server creation is made

@@ -25,6 +25,7 @@ def get_OPCODE(command_str):
         return 'Command not supported'
 
 
+# This method returns the file path for files in the 'client_files' directory
 def getFilePath(fileName):
     file_path = os.path.join('client_files', fileName)
     return file_path
@@ -78,18 +79,18 @@ def get_string_from_binary(binaryStr):
 def put_command_builder(command_str):
     # the 5 bits in the OPCODE byte (FL)
     fileNameLength = get_fileName_length(command_str[1])
-    print("File name length " + fileNameLength)
+    # print("File name length " + fileNameLength)
     # this is the binary value of the file name in FL bytes
     fileNameBinary = get_binary_string(command_str[1])
-    print("File name in binary: " + fileNameBinary)
+    # print("File name in binary: " + fileNameBinary)
     # this is just a verification to make sure that the binary string corresponds to inputted file name
-    print(get_string_from_binary(fileNameBinary))
+    # print(get_string_from_binary(fileNameBinary))
     # this is the FS of the file to be transferred
     sizeOfFile = get_file_size(command_str[1])
-    print("Size of file: " + sizeOfFile)
+    # print("Size of file: " + sizeOfFile)
     file_data = get_file_binary_client(command_str[1])
-    print("File data: " + file_data)
-    print(get_string_from_binary(file_data))
+    # print("File data: " + file_data)
+    # print(get_string_from_binary(file_data))
     return fileNameLength + fileNameBinary + sizeOfFile + file_data
 
 
