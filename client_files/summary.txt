@@ -1,0 +1,4 @@
+Summary for numbers.txt:
+Maximum: 10.0
+Minimum: 1.0
+Average: 5.5

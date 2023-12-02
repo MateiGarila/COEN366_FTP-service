@@ -29,6 +29,7 @@ def getFilePath(fileName):
     file_path = os.path.join('client_files', fileName)
     return file_path
 
+
 # This method returns the length of the file's name else it returns 'File name not supported'
 def get_fileName_length(fileName):
     numChars = len(fileName)
@@ -90,3 +91,30 @@ def put_command_builder(command_str):
     print("File data: " + file_data)
     print(get_string_from_binary(file_data))
     return fileNameLength + fileNameBinary + sizeOfFile + file_data
+
+
+def summary_command_builder(command_str):
+    # Extract the file name from the command
+    file_name = command_str[1]
+    file_path = getFilePath(file_name)
+    if not os.path.exists(file_path):
+        return f"File '{file_name}' does not exist."
+
+    with open(file_path, 'r') as file:
+        numbers = file.read()
+
+    numbers = [float(num) for num in numbers.split()]
+
+    max_value = max(numbers)
+    min_value = min(numbers)
+    avg_value = sum(numbers) / len(numbers)
+
+    # Create the summary response
+    summary_response = f"Summary for {file_name}:\nMaximum: {max_value}\nMinimum: {min_value}\nAverage: {avg_value}"
+
+    summary_file_path = os.path.join('client_files', 'summary.txt')
+    with open(summary_file_path, 'w') as summary:
+        summary.write(summary_response)
+
+    return summary_response
+

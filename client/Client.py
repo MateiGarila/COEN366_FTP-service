@@ -7,7 +7,8 @@ from ftp_functions.ftp_functions import (
     put_command_builder,
     get_string_from_binary,
     get_OPCODE,
-    get_fileName_length
+    get_fileName_length,
+    summary_command_builder
 )
 from ftp_constants import (
     PUT_OPCODE,
@@ -65,6 +66,11 @@ def main():
                             client_send(client, put_request)
                         else:
                             print("\nThe name of the file exceeds 31 characters, please refactor the file's name\n")
+                    elif opcode == SUMMARY_OPCODE:
+                        summary_request = opcode + summary_command_builder(command_str)
+                        # print(summary_request)
+                        client_send(client, summary_request)
+
                 else:
                     print("\nCommand is not complete, please specify a file!\n")
 
