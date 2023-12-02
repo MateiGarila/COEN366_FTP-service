@@ -8,7 +8,8 @@ from ftp_functions.ftp_functions import (
     get_string_from_binary,
     get_OPCODE,
     get_fileName_length,
-    summary_command_builder
+    summary_command_builder,
+    change_file_name
 )
 from ftp_constants import (
     PUT_OPCODE,
@@ -70,6 +71,9 @@ def main():
                         summary_request = opcode + summary_command_builder(command_str)
                         # print(summary_request)
                         client_send(client, summary_request)
+                    elif opcode == CHANGE_OPCODE:
+                        change_request = opcode + change_file_name(command_str)
+                        client_send(client, change_request)
 
                 else:
                     print("\nCommand is not complete, please specify a file!\n")

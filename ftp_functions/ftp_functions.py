@@ -118,3 +118,17 @@ def summary_command_builder(command_str):
 
     return summary_response
 
+
+def change_file_name(command_str):
+    # Extract the file name from the command
+    file_name = command_str[1]
+    file_path_old = getFilePath(file_name)
+    if not os.path.exists(file_path_old):
+        return f"File '{file_name}' does not exist."
+
+    newName = input("Enter new name of file: ")
+    file_path_New = os.path.join('client_files', newName)
+
+    os.rename(file_path_old, file_path_New)
+
+    return newName
