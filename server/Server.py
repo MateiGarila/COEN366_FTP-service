@@ -1,21 +1,25 @@
 import socket
 import threading
-import util
+
+from ftp_functions.ftp_functions import (
+    get_binary_string
+)
+from ftp_constants import (
+    PUT_OPCODE,
+    GET_OPCODE,
+    CHANGE_OPCODE,
+    SUMMARY_OPCODE,
+    HELP_OPCODE,
+    HELP_RESPONSE
+)
 
 clients = []
 aliases = []
 
-PUT_OPCODE = '000'
-GET_OPCODE = '001'
-CHANGE_OPCODE = '010'
-SUMMARY_OPCODE = '011'
-HELP_OPCODE = '100'
-HELP_RESPONSE = '110'
-
 
 def handle_request_help():
     commandList = "Commands are: exit change get help put summary"
-    commandInBits = util.get_binary_string(commandList)
+    commandInBits = get_binary_string(commandList)
     commandBytes = len(commandInBits) // 8
     bytesInBits = bin(commandBytes)[2:]
     return HELP_RESPONSE + bytesInBits + commandInBits
@@ -23,7 +27,6 @@ def handle_request_help():
 
 # The purpose of this function is to listen to the client's requests and to reply to the client
 def handle_client(client):
-
     while True:
         # this 'message' is what the client sent to the server
         message = client.recv(4096).decode()
