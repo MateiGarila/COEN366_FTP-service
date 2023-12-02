@@ -2,9 +2,7 @@
 
 
 # Import the necessary modules and functions
-import socket
 import threading
-import time
 from server.Server import main as start_server
 from client.Client import main as start_client
 
