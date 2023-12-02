@@ -25,6 +25,10 @@ def get_OPCODE(command_str):
         return 'Command not supported'
 
 
+def getFilePath(fileName):
+    file_path = os.path.join('..', 'client_files', fileName)
+    return file_path
+
 # This method returns the length of the file's name else it returns 'File name not supported'
 def get_fileName_length(fileName):
     numChars = len(fileName)
@@ -45,7 +49,7 @@ def get_binary_string(string):
 def get_file_size(fileName):
     # REQUIRED 4 bytes for FS - 8 bits to a byte * 4
     numberOfBits = 8 * 4
-    file_path = os.path.join('client_files', fileName)
+    file_path = getFilePath(fileName)
     sizeOfFile = os.path.getsize(file_path)
     sizeOfFileBin = bin(sizeOfFile)[2:]
     return sizeOfFileBin.zfill(numberOfBits)
@@ -53,7 +57,7 @@ def get_file_size(fileName):
 
 # This method takes a file's name and converts its contents to binary
 def get_file_binary_client(fileName):
-    file_path = os.path.join('client_files', fileName)
+    file_path = getFilePath(fileName)
     with open(file_path, 'rb') as file:
         binary_data = ''.join(format(byte, '08b') for byte in file.read())
 
