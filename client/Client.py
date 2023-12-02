@@ -2,13 +2,21 @@ import socket
 import sys
 import threading
 import time
-import util
 
-PUT_OPCODE = '000'
-GET_OPCODE = '001'
-CHANGE_OPCODE = '010'
-SUMMARY_OPCODE = '011'
-HELP_OPCODE = '100'
+from ftp_functions.ftp_functions import (
+    put_command_builder,
+    get_string_from_binary,
+    get_OPCODE,
+    get_fileName_length
+)
+from ftp_constants import (
+    PUT_OPCODE,
+    GET_OPCODE,
+    CHANGE_OPCODE,
+    SUMMARY_OPCODE,
+    HELP_OPCODE,
+    HELP_RESPONSE
+)
 
 
 # This method's purpose is to listen to the server's replies and to print them in the console
@@ -16,41 +24,7 @@ def handle_server(server):
     while True:
         message = server.recv(4096).decode()
         test = message[8:]
-        print(util.get_string_from_binary(test))
-
-
-# This method is dedicated to getting the opcode of the command
-def get_OPCODE(command_str):
-    if command_str == 'put':
-        return PUT_OPCODE
-    elif command_str == 'get':
-        return GET_OPCODE
-    elif command_str == 'change':
-        return CHANGE_OPCODE
-    elif command_str == 'summary':
-        return SUMMARY_OPCODE
-    elif command_str == 'help':
-        return HELP_OPCODE
-    else:
-        return 'Command not supported'
-
-
-def put_command_builder(command_str):
-    # the 5 bits in the OPCODE byte (FL)
-    fileNameLength = util.get_fileName_length(command_str[1])
-    print("File name length " + fileNameLength)
-    # this is the binary value of the file name in FL bytes
-    fileNameBinary = util.get_binary_string(command_str[1])
-    print("File name in binary: " + fileNameBinary)
-    # this is just a verification to make sure that the binary string corresponds to inputted file name
-    print(util.get_string_from_binary(fileNameBinary))
-    # this is the FS of the file to be transferred
-    sizeOfFile = util.get_file_size(command_str[1])
-    print("Size of file: " + sizeOfFile)
-    file_data = util.get_file_binary_client(command_str[1])
-    print("File data: " + file_data)
-    print(util.get_string_from_binary(file_data))
-    return fileNameLength + fileNameBinary + sizeOfFile + file_data
+        print(get_string_from_binary(test))
 
 
 def main():
@@ -95,7 +69,7 @@ def main():
                     print("\nCommand is not complete, please specify a file!\n")
 
             if opcode == HELP_OPCODE:
-                help_request = opcode + util.get_fileName_length("")
+                help_request = opcode + get_fileName_length("")
                 client_send(client, help_request)
 
         if choice == 'exit':
