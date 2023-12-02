@@ -26,7 +26,7 @@ def get_OPCODE(command_str):
 
 
 def getFilePath(fileName):
-    file_path = os.path.join('..', 'client_files', fileName)
+    file_path = os.path.join('client_files', fileName)
     return file_path
 
 # This method returns the length of the file's name else it returns 'File name not supported'
