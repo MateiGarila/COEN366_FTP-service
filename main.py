@@ -18,6 +18,6 @@ if __name__ == '__main__':
     server_thread.start()
     client_thread.start()
 
-    # Optionally, you can wait for both threads to finish
+    # wait for both threads to finish
     server_thread.join()
     client_thread.join()
