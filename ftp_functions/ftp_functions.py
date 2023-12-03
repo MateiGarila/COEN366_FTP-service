@@ -26,12 +26,13 @@ def get_OPCODE(command_str):
 
 
 # This method returns the file path for files in the 'client_files' directory
+# Needs more handling
 def getFilePath(fileName):
     file_path = os.path.join('client_files', fileName)
     return file_path
 
 
-# This method returns the length of the file's name else it returns 'File name not supported'
+# This method returns the length of the file's name
 def get_fileName_length(fileName):
     numChars = len(fileName)
     if numChars == 0:
@@ -39,6 +40,10 @@ def get_fileName_length(fileName):
     else:
         binaryChars = bin(numChars)
         return binaryChars[2:].zfill(5)
+
+
+def get_decimal_from_binary(binaryStr):
+    return int(binaryStr, 2)
 
 
 # This method returns the string in binary form
@@ -133,3 +138,31 @@ def change_file_name(command_str):
     os.rename(file_path_old, file_path_New)
 
     return newName
+
+
+def separate_bytes(binary_string, num_bytes):
+    # Calculate the number of bytes to process
+    actual_num_bytes = len(binary_string) // 8
+
+    # Ensure the input number of bytes is valid
+    if num_bytes > actual_num_bytes:
+        raise ValueError("The input number of bytes is greater than the number of bytes in the binary string.")
+
+    # Process each byte
+    byte_values = []
+    for i in range(actual_num_bytes):
+        start = i * 8
+        end = start + 8
+        byte_string = binary_string[start:end]
+        byte_value = format(int(byte_string, 2), '08b')
+        byte_values.append(byte_value)
+
+    # Separate the specified number of bytes and the remaining bytes
+    separated_bytes = byte_values[:num_bytes]
+    remaining_bytes = byte_values[num_bytes:]
+
+    # Convert the byte values to strings
+    separated_bytes_str = ''.join(separated_bytes)
+    remaining_bytes_str = ''.join(remaining_bytes)
+
+    return separated_bytes_str, remaining_bytes_str

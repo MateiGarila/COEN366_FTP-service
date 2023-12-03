@@ -1,8 +1,12 @@
 import socket
+import string
 import threading
 
 from ftp_functions.ftp_functions import (
-    get_binary_string
+    get_binary_string,
+    get_decimal_from_binary,
+    separate_bytes,
+    get_string_from_binary
 )
 from ftp_constants import (
     PUT_OPCODE,
@@ -10,7 +14,8 @@ from ftp_constants import (
     CHANGE_OPCODE,
     SUMMARY_OPCODE,
     HELP_OPCODE,
-    HELP_RESPONSE
+    HELP_RESPONSE,
+    FILE_SIZE_BYTES
 )
 
 clients = []
@@ -26,19 +31,42 @@ def handle_request_help():
     return HELP_RESPONSE + bytesInBits + commandInBits
 
 
+def handle_put_request(message):
+    # This part separates the remaining of the first byte (5 bits) to get the number of bytes for the file name
+    fileNameLength = message[:5]
+    message = message[5:]
+    fileNameLength = get_decimal_from_binary(fileNameLength)
+
+    # This part separates the CORRECT number of bytes reserved for the file name and saves it in 'fileName'
+    fileName, message = separate_bytes(message, fileNameLength)
+
+    # This part separates 4 bytes which are reserved for the File Size (FS) and saves it in 'fileSize'
+    fileSize, message = separate_bytes(message, FILE_SIZE_BYTES)
+    fileSize = get_decimal_from_binary(fileSize)
+
+    # This part separates the remaining bytes reserved for the file data - normally the remaining bytes are all about
+    # the file data - be thorough - the file data is saved in 'fileData' - message should technically be an empty string
+    fileData, message = separate_bytes(message, fileSize)
+
+
 # The purpose of this function is to listen to the client's requests and to reply to the client
 def handle_client(client):
     while True:
         # this 'message' is what the client sent to the server
         message = client.recv(4096).decode()
-        print(message)
+        # print("Message received by server: " + message)
         opcode = message[:3]
+        fileLength = message[3:8]
         message = message[3:]
-        print("Opcode: " + opcode)
-        print("Message: " + message)
+        # print("Opcode: " + opcode)
+        # print("File Length: " + fileLength)
+        # print("Message: " + message)
 
+        # From here redirect to corresponding request handler
         if opcode == PUT_OPCODE:
-            print("PUT")
+            handle_put_request(message)
+            #put_response = handle_put_request(message)
+            #server_send(client, put_response)
         elif opcode == GET_OPCODE:
             print("GET")
         elif opcode == CHANGE_OPCODE:

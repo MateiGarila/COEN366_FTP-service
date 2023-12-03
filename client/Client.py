@@ -66,7 +66,7 @@ def main():
                         if len(command_str[1]) <= 31:
                             put_request = put_command_builder(command_str)
                             put_request = opcode + put_request
-                            print(put_request)
+                            # print("Put request: " + put_request)
                             client_send(client, put_request)
                         else:
                             print("\nThe name of the file exceeds 31 characters, please refactor the file's name\n")
