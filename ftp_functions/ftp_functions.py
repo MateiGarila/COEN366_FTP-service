@@ -81,6 +81,18 @@ def get_string_from_binary(binaryStr):
     return string
 
 
+# This method writes file to the specified 'directory', with the corresponding 'fileName' and 'fileData'
+def create_file(directory, fileName, fileData):
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+
+    full_path = os.path.join(directory, fileName)
+
+    with open(full_path, 'w') as file:
+        file.write(fileData)
+
+
+# This method creates the put request which will be sent to the server
 def put_command_builder(command_str):
     # the 5 bits in the OPCODE byte (FL)
     fileNameLength = get_fileName_length(command_str[1])

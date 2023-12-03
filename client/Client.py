@@ -9,7 +9,9 @@ from ftp_functions.ftp_functions import (
     get_OPCODE,
     get_fileName_length,
     summary_command_builder,
-    change_file_name
+    change_file_name,
+    get_decimal_from_binary,
+    separate_bytes
 )
 from ftp_constants import (
     PUT_OPCODE,
@@ -17,6 +19,12 @@ from ftp_constants import (
     CHANGE_OPCODE,
     SUMMARY_OPCODE,
     HELP_OPCODE,
+    CORRECT_PUT_CHANGE,
+    CORRECT_GET,
+    STATISTICAL_SUMMARY,
+    ERROR_FILE_NOT_FOUND,
+    ERROR_UNKNOWN_REQUEST,
+    UNSUCCESSFUL_CHANGE,
     HELP_RESPONSE
 )
 
@@ -26,10 +34,30 @@ def handle_server(server):
     while True:
         # This is the messages the server sends the client
         message = server.recv(4096).decode()
-        print("Server reply: " + message)
+        # print("Server reply: " + message)
         # Need better handling
-        test = message[8:]
-        print(get_string_from_binary(test))
+        opcode = message[:3]
+        message = message[3:]
+        remaining_byte = message[:5]
+        message = message[5:]
+        # print("opcode from server: " + opcode)
+        # print('remaining byte: ' + remaining_byte)
+        # print('message: ' + message)
+        # print('decoded message: ' + get_string_from_binary(message))
+
+        # From here redirect to corresponding request handler
+        if opcode == CORRECT_PUT_CHANGE:
+            print('\nFile successfully updated!\n')
+        elif opcode == GET_OPCODE:
+            print("GET")
+        elif opcode == CHANGE_OPCODE:
+            print("CHANGE")
+        elif opcode == SUMMARY_OPCODE:
+            print("SUMMARY")
+        elif opcode == HELP_RESPONSE:
+            messageLength = get_decimal_from_binary(remaining_byte)
+            response, message = separate_bytes(message, messageLength)
+            print(get_string_from_binary(response))
 
 
 def main():

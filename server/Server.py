@@ -6,7 +6,8 @@ from ftp_functions.ftp_functions import (
     get_binary_string,
     get_decimal_from_binary,
     separate_bytes,
-    get_string_from_binary
+    get_string_from_binary,
+    create_file
 )
 from ftp_constants import (
     PUT_OPCODE,
@@ -22,6 +23,7 @@ clients = []
 aliases = []
 
 
+# This method handles the 'help' request
 def handle_request_help():
     # commandList the way it is now is exactly 31 bytes long. Which is the maximum allowed to be transferred to the user
     commandList = "bye change get help put summary"
@@ -31,6 +33,7 @@ def handle_request_help():
     return HELP_RESPONSE + bytesInBits + commandInBits
 
 
+# This method handles the 'put' request
 def handle_put_request(message):
     # This part separates the remaining of the first byte (5 bits) to get the number of bytes for the file name
     fileNameLength = message[:5]
@@ -48,6 +51,10 @@ def handle_put_request(message):
     # the file data - be thorough - the file data is saved in 'fileData' - message should technically be an empty string
     fileData, message = separate_bytes(message, fileSize)
 
+    create_file('server_files', get_string_from_binary(fileName), get_string_from_binary(fileData))
+
+    return '00000000'
+
 
 # The purpose of this function is to listen to the client's requests and to reply to the client
 def handle_client(client):
@@ -64,9 +71,9 @@ def handle_client(client):
 
         # From here redirect to corresponding request handler
         if opcode == PUT_OPCODE:
-            handle_put_request(message)
-            #put_response = handle_put_request(message)
-            #server_send(client, put_response)
+            # handle_put_request(message)
+            put_response = handle_put_request(message)
+            server_send(client, put_response)
         elif opcode == GET_OPCODE:
             print("GET")
         elif opcode == CHANGE_OPCODE:
