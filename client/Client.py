@@ -5,6 +5,7 @@ import time
 
 from ftp_functions.ftp_functions import (
     put_command_builder,
+    get_command_builder,
     get_string_from_binary,
     get_OPCODE,
     get_fileName_length,
@@ -28,6 +29,8 @@ from ftp_constants import (
     HELP_RESPONSE
 )
 
+# def handle_get_response(response):
+
 
 # This method's purpose is to listen to the server's replies and to print them in the console
 def handle_server(server):
@@ -48,16 +51,16 @@ def handle_server(server):
         # From here redirect to corresponding request handler
         if opcode == CORRECT_PUT_CHANGE:
             print('\nFile successfully updated!\n')
-        elif opcode == GET_OPCODE:
+        elif opcode == CORRECT_GET:
             print("GET")
-        elif opcode == CHANGE_OPCODE:
-            print("CHANGE")
-        elif opcode == SUMMARY_OPCODE:
+        elif opcode == STATISTICAL_SUMMARY:
             print("SUMMARY")
         elif opcode == HELP_RESPONSE:
             messageLength = get_decimal_from_binary(remaining_byte)
             response, message = separate_bytes(message, messageLength)
-            print(get_string_from_binary(response))
+            print("\n" + get_string_from_binary(response) + "\n")
+        elif opcode == ERROR_FILE_NOT_FOUND:
+            print('\nSpecified file is not present server-side\n')
 
 
 def main():
@@ -80,7 +83,7 @@ def main():
         time.sleep(1)
         choice = input("FTP-Client>")
 
-        while len(choice) == 0:
+        while len(choice) < 3:
             choice = input("FTP-Client>")
 
         command_str = choice.split()
@@ -98,13 +101,24 @@ def main():
                             client_send(client, put_request)
                         else:
                             print("\nThe name of the file exceeds 31 characters, please refactor the file's name\n")
+                    elif opcode == GET_OPCODE:
+
+                        if len(command_str[1]) <= 31:
+                            get_request = get_command_builder(command_str)
+                            get_request = opcode + get_request
+                            # print("Get request: " + get_request)
+                            client_send(client, get_request)
+                        else:
+                            print("\nThe name of the file exceeds 31 characters, please refactor the file's name\n")
                     elif opcode == SUMMARY_OPCODE:
-                        summary_request = opcode + summary_command_builder(command_str)
+                        print("Hello, function getFilePath now requires an new argument (directory) please review!")
+                        # summary_request = opcode + summary_command_builder(command_str)
                         # print(summary_request)
-                        client_send(client, summary_request)
+                        # client_send(client, summary_request)
                     elif opcode == CHANGE_OPCODE:
-                        change_request = opcode + change_file_name(command_str)
-                        client_send(client, change_request)
+                        print("Hello, function getFilePath now requires an new argument (directory) please review!")
+                        # change_request = opcode + change_file_name(command_str)
+                        # client_send(client, change_request)
 
                 else:
                     print("\nCommand is not complete, please specify a file!\n")

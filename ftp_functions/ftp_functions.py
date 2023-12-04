@@ -5,7 +5,9 @@ from ftp_constants import (
     CHANGE_OPCODE,
     SUMMARY_OPCODE,
     HELP_OPCODE,
-    HELP_RESPONSE
+    FILE_SIZE_BYTES,
+    CLIENT_FILES_DIRECTORY,
+    SERVER_FILES_DIRECTORY
 )
 
 
@@ -26,9 +28,8 @@ def get_OPCODE(command_str):
 
 
 # This method returns the file path for files in the 'client_files' directory
-# Needs more handling
-def getFilePath(fileName):
-    file_path = os.path.join('client_files', fileName)
+def getFilePath(directory, fileName):
+    file_path = os.path.join(directory, fileName)
     return file_path
 
 
@@ -42,6 +43,8 @@ def get_fileName_length(fileName):
         return binaryChars[2:].zfill(5)
 
 
+# This method receives a binary string and returns the contents as an integer -- no handling for binary string longer
+# than integer i.e. if you give it a word instead of a number it's probably, definitely going to crash
 def get_decimal_from_binary(binaryStr):
     return int(binaryStr, 2)
 
@@ -52,19 +55,19 @@ def get_binary_string(string):
     return binary_string
 
 
-# This method returns the size of the specified file -- The file MUST be in the 'client_files' folder
-def get_file_size(fileName):
+# This method returns the size of the specified file
+def get_file_size(directory, fileName):
     # REQUIRED 4 bytes for FS - 8 bits to a byte * 4
-    numberOfBits = 8 * 4
-    file_path = getFilePath(fileName)
+    numberOfBits = 8 * FILE_SIZE_BYTES
+    file_path = getFilePath(directory, fileName)
     sizeOfFile = os.path.getsize(file_path)
     sizeOfFileBin = bin(sizeOfFile)[2:]
     return sizeOfFileBin.zfill(numberOfBits)
 
 
 # This method takes a file's name and converts its contents to binary
-def get_file_binary_client(fileName):
-    file_path = getFilePath(fileName)
+def get_file_binary(directory, fileName):
+    file_path = getFilePath(directory, fileName)
     with open(file_path, 'rb') as file:
         binary_data = ''.join(format(byte, '08b') for byte in file.read())
 
@@ -103,12 +106,21 @@ def put_command_builder(command_str):
     # this is just a verification to make sure that the binary string corresponds to inputted file name
     # print(get_string_from_binary(fileNameBinary))
     # this is the FS of the file to be transferred
-    sizeOfFile = get_file_size(command_str[1])
+    sizeOfFile = get_file_size(CLIENT_FILES_DIRECTORY, command_str[1])
     # print("Size of file: " + sizeOfFile)
-    file_data = get_file_binary_client(command_str[1])
+    file_data = get_file_binary(CLIENT_FILES_DIRECTORY, command_str[1])
     # print("File data: " + file_data)
     # print(get_string_from_binary(file_data))
     return fileNameLength + fileNameBinary + sizeOfFile + file_data
+
+
+# This method creates the get request which will be sent to the server
+def get_command_builder(command_str):
+    # the 5 bits un the OPCODE byte (FL)
+    fileNameLength = get_fileName_length(command_str[1])
+    # 'fileNameBinary' consists of FL bytes
+    fileNameBinary = get_binary_string(command_str[1])
+    return fileNameLength + fileNameBinary
 
 
 def summary_command_builder(command_str):
@@ -137,10 +149,10 @@ def summary_command_builder(command_str):
     return summary_response
 
 
-def change_file_name(command_str):
+def change_file_name(directory, command_str):
     # Extract the file name from the command
     file_name = command_str[1]
-    file_path_old = getFilePath(file_name)
+    file_path_old = getFilePath(directory, file_name)
     if not os.path.exists(file_path_old):
         return f"File '{file_name}' does not exist."
 
@@ -152,6 +164,8 @@ def change_file_name(command_str):
     return newName
 
 
+# Given a binary string this method will separate the corresponding number of bytes and return the separated string and
+# the remaining binary string
 def separate_bytes(binary_string, num_bytes):
     # Calculate the number of bytes to process
     actual_num_bytes = len(binary_string) // 8
@@ -178,3 +192,14 @@ def separate_bytes(binary_string, num_bytes):
     remaining_bytes_str = ''.join(remaining_bytes)
 
     return separated_bytes_str, remaining_bytes_str
+
+
+# This method searches the specified 'directory' for the specified 'file_name'
+def search_file(directory, file_name):
+    if not os.path.exists(directory):
+        return "Directory does not exist"
+    else:
+        for root, dirs, files in os.walk(directory):
+            if file_name in files:
+                return True
+        return False

@@ -7,7 +7,10 @@ from ftp_functions.ftp_functions import (
     get_decimal_from_binary,
     separate_bytes,
     get_string_from_binary,
-    create_file
+    create_file,
+    search_file,
+    get_file_size,
+    get_file_binary
 )
 from ftp_constants import (
     PUT_OPCODE,
@@ -16,7 +19,11 @@ from ftp_constants import (
     SUMMARY_OPCODE,
     HELP_OPCODE,
     HELP_RESPONSE,
-    FILE_SIZE_BYTES
+    FILE_SIZE_BYTES,
+    SERVER_FILES_DIRECTORY,
+    ERROR_FILE_NOT_FOUND,
+    EMPTY_FIRST_BITS,
+    CORRECT_GET
 )
 
 clients = []
@@ -34,26 +41,43 @@ def handle_request_help():
 
 
 # This method handles the 'put' request
-def handle_put_request(message):
+def handle_put_request(request):
     # This part separates the remaining of the first byte (5 bits) to get the number of bytes for the file name
-    fileNameLength = message[:5]
-    message = message[5:]
+    fileNameLength = request[:5]
+    request = request[5:]
     fileNameLength = get_decimal_from_binary(fileNameLength)
 
     # This part separates the CORRECT number of bytes reserved for the file name and saves it in 'fileName'
-    fileName, message = separate_bytes(message, fileNameLength)
+    fileName, request = separate_bytes(request, fileNameLength)
 
     # This part separates 4 bytes which are reserved for the File Size (FS) and saves it in 'fileSize'
-    fileSize, message = separate_bytes(message, FILE_SIZE_BYTES)
+    fileSize, request = separate_bytes(request, FILE_SIZE_BYTES)
     fileSize = get_decimal_from_binary(fileSize)
 
     # This part separates the remaining bytes reserved for the file data - normally the remaining bytes are all about
-    # the file data - be thorough - the file data is saved in 'fileData' - message should technically be an empty string
-    fileData, message = separate_bytes(message, fileSize)
+    # the file data - be thorough - the file data is saved in 'fileData' - request should technically be an empty string
+    fileData, request = separate_bytes(request, fileSize)
 
-    create_file('server_files', get_string_from_binary(fileName), get_string_from_binary(fileData))
+    create_file(SERVER_FILES_DIRECTORY, get_string_from_binary(fileName), get_string_from_binary(fileData))
 
     return '00000000'
+
+
+def handle_get_request(request):
+    fileNameLengthBin = request[:5]
+    request = request[5:]
+
+    fileNameLength = get_decimal_from_binary(fileNameLengthBin)
+
+    fileNameBin, request = separate_bytes(request, fileNameLength)
+    fileName = get_string_from_binary(fileNameBin)
+    if not search_file(SERVER_FILES_DIRECTORY, fileName):
+        return ERROR_FILE_NOT_FOUND + EMPTY_FIRST_BITS
+    else:
+        # At this point we have Res-code, filename length and filename all we need is file size and file data
+        sizeOfFile = get_file_size(SERVER_FILES_DIRECTORY, fileName)
+        fileData = get_file_binary(SERVER_FILES_DIRECTORY, fileName)
+        return CORRECT_GET + fileNameLengthBin + fileNameBin + sizeOfFile + fileData
 
 
 # The purpose of this function is to listen to the client's requests and to reply to the client
@@ -71,11 +95,12 @@ def handle_client(client):
 
         # From here redirect to corresponding request handler
         if opcode == PUT_OPCODE:
-            # handle_put_request(message)
             put_response = handle_put_request(message)
             server_send(client, put_response)
         elif opcode == GET_OPCODE:
-            print("GET")
+            get_response = handle_get_request(message)
+            # print("Server sending: " + get_response)
+            server_send(client, get_response)
         elif opcode == CHANGE_OPCODE:
             print("CHANGE")
         elif opcode == SUMMARY_OPCODE:

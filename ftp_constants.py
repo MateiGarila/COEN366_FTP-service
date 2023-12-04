@@ -18,3 +18,6 @@ HELP_RESPONSE = '110'
 
 # Other constants
 FILE_SIZE_BYTES = 4
+CLIENT_FILES_DIRECTORY = 'client_files'
+SERVER_FILES_DIRECTORY = 'server_files'
+EMPTY_FIRST_BITS = '00000'
