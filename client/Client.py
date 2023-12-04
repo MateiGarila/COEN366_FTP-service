@@ -12,7 +12,8 @@ from ftp_functions.ftp_functions import (
     summary_command_builder,
     change_file_name,
     get_decimal_from_binary,
-    separate_bytes
+    separate_bytes,
+    create_file
 )
 from ftp_constants import (
     PUT_OPCODE,
@@ -26,10 +27,30 @@ from ftp_constants import (
     ERROR_FILE_NOT_FOUND,
     ERROR_UNKNOWN_REQUEST,
     UNSUCCESSFUL_CHANGE,
-    HELP_RESPONSE
+    HELP_RESPONSE,
+    FILE_SIZE_BYTES,
+    CLIENT_FILES_DIRECTORY
 )
 
-# def handle_get_response(response):
+
+def handle_get_response(response):
+    # This part separates the remaining of the first byte (5 bits) to get the number of bytes for the file name
+    fileNameLength = response[:5]
+    response = response[5:]
+    fileNameLength = get_decimal_from_binary(fileNameLength)
+
+    # This part separates the CORRECT number of bytes reserved for the file name and saves it in 'fileName'
+    fileName, response = separate_bytes(response, fileNameLength)
+
+    # This part separates 4 bytes which are reserved for the File Size (FS) and saves it in 'fileSize'
+    fileSize, response = separate_bytes(response, FILE_SIZE_BYTES)
+    fileSize = get_decimal_from_binary(fileSize)
+
+    # This part separates the remaining bytes reserved for the file data - normally the remaining bytes are all about
+    # the file data - be thorough - the file data is saved in 'fileData' - request should technically be an empty string
+    fileData, response = separate_bytes(response, fileSize)
+
+    create_file(CLIENT_FILES_DIRECTORY, get_string_from_binary(fileName), get_string_from_binary(fileData))
 
 
 # This method's purpose is to listen to the server's replies and to print them in the console
@@ -41,21 +62,18 @@ def handle_server(server):
         # Need better handling
         opcode = message[:3]
         message = message[3:]
-        remaining_byte = message[:5]
-        message = message[5:]
-        # print("opcode from server: " + opcode)
-        # print('remaining byte: ' + remaining_byte)
-        # print('message: ' + message)
-        # print('decoded message: ' + get_string_from_binary(message))
 
         # From here redirect to corresponding request handler
         if opcode == CORRECT_PUT_CHANGE:
             print('\nFile successfully updated!\n')
         elif opcode == CORRECT_GET:
-            print("GET")
+            print("\nFile successfully fetched\n")
+            handle_get_response(message)
         elif opcode == STATISTICAL_SUMMARY:
             print("SUMMARY")
         elif opcode == HELP_RESPONSE:
+            remaining_byte = message[:5]
+            message = message[5:]
             messageLength = get_decimal_from_binary(remaining_byte)
             response, message = separate_bytes(message, messageLength)
             print("\n" + get_string_from_binary(response) + "\n")
