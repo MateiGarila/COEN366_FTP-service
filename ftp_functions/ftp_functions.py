@@ -138,19 +138,22 @@ def summary_command_builder(command_str):
     return fileNameLength + fileNameBinary + file_data
 
 
-def change_file_name(directory, command_str):
+def change_command_builder(command_str):
+    # the 5 bits in the OPCODE byte (FL)
+    fileNameLength = get_fileName_length(command_str[1])
+    print("File name length " + fileNameLength)
+    # this is the binary value of the file name in FL bytes
+    fileNameBinary = get_binary_string(command_str[1])
+    print("File name in binary: " + fileNameBinary)
+    print(get_string_from_binary(fileNameBinary))
+    return fileNameLength + fileNameBinary
+
+
+def change_file_name(fileName, newName):
     # Extract the file name from the command
-    file_name = command_str[1]
-    file_path_old = get_file_path(directory, file_name)
-    if not os.path.exists(file_path_old):
-        return f"File '{file_name}' does not exist."
-
-    newName = input("Enter new name of file: ")
-    file_path_New = os.path.join('client_files', newName)
-
+    file_path_old = get_file_path(SERVER_FILES_DIRECTORY, fileName)
+    file_path_New = os.path.join(SERVER_FILES_DIRECTORY, newName)
     os.rename(file_path_old, file_path_New)
-
-    return newName
 
 
 # Given a binary string this method will separate the corresponding number of bytes and return the separated string and
@@ -159,9 +162,13 @@ def separate_bytes(binary_string, num_bytes):
     # Calculate the number of bytes to process
     actual_num_bytes = len(binary_string) // 8
 
-    # Ensure the input number of bytes is valid
-    if num_bytes > actual_num_bytes:
-        raise ValueError("The input number of bytes is greater than the number of bytes in the binary string.")
+    # Print the values for debugging
+    # print("actual_num_bytes:", actual_num_bytes)
+    # print("num_bytes:", num_bytes)
+
+    # Ensure the input number of bytes is within a valid range
+    if not (0 <= num_bytes <= actual_num_bytes):
+        raise ValueError("The input number of bytes is not within a valid range.")
 
     # Process each byte
     byte_values = []
@@ -172,6 +179,15 @@ def separate_bytes(binary_string, num_bytes):
         byte_value = format(int(byte_string, 2), '08b')
         byte_values.append(byte_value)
 
+    # Calculate the number of remaining bits dynamically
+    remaining_bits = len(binary_string) % 8
+
+    # Handle remaining bits
+    if remaining_bits > 0:
+        last_byte_string = binary_string[-remaining_bits:].ljust(8, '0')
+        last_byte_value = format(int(last_byte_string, 2), '08b')
+        byte_values.append(last_byte_value)
+
     # Separate the specified number of bytes and the remaining bytes
     separated_bytes = byte_values[:num_bytes]
     remaining_bytes = byte_values[num_bytes:]
@@ -179,6 +195,10 @@ def separate_bytes(binary_string, num_bytes):
     # Convert the byte values to strings
     separated_bytes_str = ''.join(separated_bytes)
     remaining_bytes_str = ''.join(remaining_bytes)
+
+    # Print the separated and remaining bytes for debugging
+    # print("separated_bytes_str:", separated_bytes_str)
+    # print("remaining_bytes_str:", remaining_bytes_str)
 
     return separated_bytes_str, remaining_bytes_str
 

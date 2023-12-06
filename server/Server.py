@@ -14,7 +14,7 @@ from ftp_constants import (
     ERROR_FILE_NOT_FOUND,
     CHANGE_OPCODE,
     CORRECT_GET,
-    HELP_OPCODE
+    HELP_OPCODE, UNSUCCESSFUL_CHANGE, CORRECT_PUT_CHANGE
 )
 
 from ftp_functions.ftp_functions import (
@@ -25,7 +25,7 @@ from ftp_functions.ftp_functions import (
     create_file,
     search_file,
     get_file_size,
-    get_file_binary
+    get_file_binary, change_file_name
 )
 
 clients = []
@@ -83,7 +83,7 @@ def handle_get_request(request):
         return CORRECT_GET + fileNameLengthBin + fileNameBin + sizeOfFile + fileData
 
 
-def handle_summary_filename(request):
+def handle_summary_filename_request(request):
     fileNameLengthBin = request[:5]
     request = request[5:]
 
@@ -119,7 +119,43 @@ def handle_summary_filename(request):
         return response
 
 
+def handle_change_filename_request(request):
+    # Extract the length of the old filename
+    oldFileNameLengthBin = request[:5]
+    # print("Old fileNameLengthBin: " + oldFileNameLengthBin)
+    request = request[5:]
+    # print("Remaining request after oldFileNameLengthBin: " + request)
+    oldFileNameLength = get_decimal_from_binary(oldFileNameLengthBin)
+
+    # Extract the old filename
+    oldFileNameBin, request = separate_bytes(request, oldFileNameLength)
+    oldFileName = get_string_from_binary(oldFileNameBin)
+    # print("Old FileName: " + oldFileName)
+
+    # Extract the length of the new filename
+    newFileNameLengthBin = request[:5]
+    # print("New fileNameLengthBin: " + newFileNameLengthBin)
+    request = request[5:]
+    # print("Remaining request after newFileNameLengthBin: " + request)
+    newFileNameLength = get_decimal_from_binary(newFileNameLengthBin)
+
+    # Extract the new filename
+    newFileNameBin, request = separate_bytes(request, newFileNameLength)
+    newFileName = get_string_from_binary(newFileNameBin)
+    # print("New FileName: " + newFileName)
+
+    if not search_file(SERVER_FILES_DIRECTORY, oldFileName):
+        print("Unsuccessful change: File not found.")
+        return UNSUCCESSFUL_CHANGE
+    else:
+        # At this point, you have Res-code
+        change_file_name(oldFileName, newFileName)
+        print("Successful change: File names updated.")
+        return CORRECT_PUT_CHANGE
+
+
 # The purpose of this function is to listen to the client's requests and to reply to the client
+
 def handle_client(client):
     while True:
         # this 'message' is what the client sent to the server
@@ -141,10 +177,12 @@ def handle_client(client):
             # print("Server sending: " + get_response)
             server_send(client, get_response)
         elif opcode == CHANGE_OPCODE:
-            print("CHANGE")
+            change_response = handle_change_filename_request(message)
+            server_send(client, change_response)
+            print("Server sending: " + change_response)
         elif opcode == SUMMARY_OPCODE:
-            summary_request = handle_summary_filename(message)
-            server_send(client, summary_request)
+            summary_response = handle_summary_filename_request(message)
+            server_send(client, summary_response)
             # print("SUMMARY")
         elif opcode == HELP_OPCODE:
             help_string = handle_request_help()

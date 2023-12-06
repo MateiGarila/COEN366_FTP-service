@@ -10,6 +10,7 @@ from ftp_functions.ftp_functions import (
     get_OPCODE,
     get_fileName_length,
     summary_command_builder,
+    change_command_builder,
     get_decimal_from_binary,
     separate_bytes,
     create_file
@@ -132,12 +133,31 @@ def main():
                             print("\nThe name of the file exceeds 31 characters, please refactor the file's name\n")
 
                     elif opcode == CHANGE_OPCODE:
-                        print("Hello, function get_file_path now requires an new argument (directory) please review!")
-                        # change_request = opcode + change_file_name(command_str)
-                        # client_send(client, change_request)
-
-                else:
-                    print("\nCommand is not complete, please specify a file!\n")
+                        if len(command_str) > 1:
+                            # print(command_str)
+                            if len(command_str[1]) <= 31:
+                                # print(command_str[1])
+                                change_request_old = change_command_builder(command_str)
+                                print("Change request: " + change_request_old)
+                                if len(command_str) > 2:
+                                    if len(command_str[2]) <= 31:
+                                        # print(command_str[2])
+                                        change_request_new = change_command_builder([command_str[0], command_str[2]])
+                                        change_request_new = opcode + change_request_old + change_request_new
+                                        print("Complete change request: " + change_request_new)
+                                        client_send(client, change_request_new)
+                                    else:
+                                        print(
+                                            "\nThe name of the second file exceeds 31 characters, please refactor the "
+                                            "file's name\n")
+                                else:
+                                    print("\nCommand is not complete, please specify a second file!\n")
+                            else:
+                                print(
+                                    "\nThe name of the first file exceeds 31 characters, please refactor the file's "
+                                    "name\n")
+                        else:
+                            print("\nCommand is not complete, please specify a file!\n")
 
             if opcode == HELP_OPCODE:
                 help_request = opcode + get_fileName_length("")
