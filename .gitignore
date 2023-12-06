@@ -4,3 +4,5 @@ client_files/summary.txt
 server_files/text.txt
 client_files/info.txt
 server_files/newinfo.txt
+server_files/new.txt
+client_files/new.txt

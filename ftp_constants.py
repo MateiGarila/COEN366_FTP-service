@@ -1,5 +1,6 @@
 # Global Variables
 
+
 # Request opcodes
 PUT_OPCODE = '000'
 GET_OPCODE = '001'
@@ -21,3 +22,4 @@ FILE_SIZE_BYTES = 4
 CLIENT_FILES_DIRECTORY = 'client_files'
 SERVER_FILES_DIRECTORY = 'server_files'
 EMPTY_FIRST_BITS = '00000'
+MAX_FILENAME_LENGTH = 31

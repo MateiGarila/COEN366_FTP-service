@@ -7,7 +7,7 @@ from ftp_constants import (
     PUT_OPCODE,
     GET_OPCODE,
     CHANGE_OPCODE,
-    HELP_OPCODE
+    HELP_OPCODE, MAX_FILENAME_LENGTH
 )
 
 
@@ -141,11 +141,11 @@ def summary_command_builder(command_str):
 def change_command_builder(command_str):
     # the 5 bits in the OPCODE byte (FL)
     fileNameLength = get_fileName_length(command_str[1])
-    print("File name length " + fileNameLength)
+    # print("File name length " + fileNameLength)
     # this is the binary value of the file name in FL bytes
     fileNameBinary = get_binary_string(command_str[1])
-    print("File name in binary: " + fileNameBinary)
-    print(get_string_from_binary(fileNameBinary))
+    # print("File name in binary: " + fileNameBinary)
+    # print(get_string_from_binary(fileNameBinary))
     return fileNameLength + fileNameBinary
 
 
@@ -212,3 +212,28 @@ def search_file(directory, file_name):
             if file_name in files:
                 return True
         return False
+
+
+def validate_filename_length(filename):
+    if len(filename) <= MAX_FILENAME_LENGTH:
+        return True
+    else:
+        print(f"\nThe name of the file exceeds {MAX_FILENAME_LENGTH} characters, please refactor the file's name\n")
+        return False
+
+
+def process_file_data(fileData):
+    numbers_str = get_string_from_binary(fileData)
+    numbers = [float(num) for num in numbers_str.split()]
+
+    max_value = max(numbers)
+    min_value = min(numbers)
+    avg_value = sum(numbers) / len(numbers)
+
+    # Create the summary response
+    summary_data = f"Maximum: {max_value}\nMinimum: {min_value}\nAverage: {avg_value}"
+
+    # Create a summary file
+    create_file(CLIENT_FILES_DIRECTORY, 'summary.txt', summary_data)
+
+    return summary_data

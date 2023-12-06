@@ -3,7 +3,6 @@ import threading
 
 from ftp_constants import (
     SERVER_FILES_DIRECTORY,
-    CLIENT_FILES_DIRECTORY,
     FILE_SIZE_BYTES,
     SUMMARY_OPCODE,
     HELP_RESPONSE,
@@ -25,7 +24,9 @@ from ftp_functions.ftp_functions import (
     create_file,
     search_file,
     get_file_size,
-    get_file_binary, change_file_name
+    get_file_binary,
+    change_file_name,
+    process_file_data
 )
 
 clients = []
@@ -98,22 +99,8 @@ def handle_summary_filename_request(request):
         sizeOfFile = get_file_size(SERVER_FILES_DIRECTORY, fileName)
         fileData = get_file_binary(SERVER_FILES_DIRECTORY, fileName)
 
-        # print("File data: " + fileData)
-        numbers_str = (get_string_from_binary(fileData))
-        # print(get_string_from_binary(fileData))
-
-        numbers = [float(num) for num in numbers_str.split()]
-
-        max_value = max(numbers)
-        min_value = min(numbers)
-        avg_value = sum(numbers) / len(numbers)
-
-        # Create the summary response
-        summary_data = f"Summary for {fileName}:\nMaximum: {max_value}\nMinimum: {min_value}\nAverage: {avg_value}"
-
-        # Create a summary file
-        create_file(CLIENT_FILES_DIRECTORY, 'summary.txt',
-                    summary_data)
+        # Process file data and get summary
+        summary_data = process_file_data(fileData)
 
         response = STATISTICAL_SUMMARY + fileNameLengthBin + fileNameBin + sizeOfFile + fileData
         return response
@@ -179,7 +166,7 @@ def handle_client(client):
         elif opcode == CHANGE_OPCODE:
             change_response = handle_change_filename_request(message)
             server_send(client, change_response)
-            print("Server sending: " + change_response)
+            # print("Server sending: " + change_response)
         elif opcode == SUMMARY_OPCODE:
             summary_response = handle_summary_filename_request(message)
             server_send(client, summary_response)
