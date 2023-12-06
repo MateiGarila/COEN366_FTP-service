@@ -27,7 +27,7 @@ from ftp_constants import (
     HELP_RESPONSE,
     FILE_SIZE_BYTES,
     CLIENT_FILES_DIRECTORY,
-    MAX_FILENAME_LENGTH
+    EMPTY_FIRST_BITS
 )
 
 
@@ -56,10 +56,12 @@ def handle_server(server):
     while True:
         # This is the messages the server sends the client
         message = server.recv(4096).decode()
-        # print("Server reply: " + message)
+        print("Server reply: " + message)
         # Need better handling
         opcode = message[:3]
         message = message[3:]
+
+        print(opcode)
 
         # From here redirect to corresponding request handler
         if opcode == CORRECT_PUT_CHANGE:
@@ -75,6 +77,8 @@ def handle_server(server):
             messageLength = get_decimal_from_binary(remaining_byte)
             response, message = separate_bytes(message, messageLength)
             print("\n" + get_string_from_binary(response) + "\n")
+        else:
+            print("Unknown opcode:", opcode)
 
 
 def send_request(client, opcode, request_builder):
@@ -101,7 +105,7 @@ def handle_summary_request(client, command_str):
 def handle_change_request(client, command_str):
     if len(command_str) > 1 and validate_filename_length(command_str[1]):
         change_request_old = change_command_builder(command_str)
-        print(f"Change request: {change_request_old}")
+        # print(f"Change request: {change_request_old}")
 
         if len(command_str) > 2 and validate_filename_length(command_str[2]):
             change_request_new = change_command_builder([command_str[0], command_str[2]])
@@ -113,8 +117,7 @@ def handle_change_request(client, command_str):
 
 
 def handle_help_request(client):
-    help_request = HELP_OPCODE + get_fileName_length("")
-    send_request(client, HELP_OPCODE, get_fileName_length(""))
+    send_request(client, EMPTY_FIRST_BITS, HELP_OPCODE)
 
 
 def main():
@@ -144,19 +147,18 @@ def main():
         # The first 3 bits in the OPCODE byte
         opcode = get_OPCODE(command_str[0])
 
-        if opcode != 'Command not supported':
-            if opcode in {PUT_OPCODE, GET_OPCODE, SUMMARY_OPCODE, CHANGE_OPCODE}:
-                handlers = {
-                    PUT_OPCODE: handle_put_request,
-                    GET_OPCODE: handle_get_request,
-                    SUMMARY_OPCODE: handle_summary_request,
-                    CHANGE_OPCODE: handle_change_request,
-                }
-                handlers[opcode](client, command_str)
-            elif opcode == HELP_OPCODE:
-                handle_help_request(client)
-            else:
-                print('\nThis command is not supported! Please type "help" for a list of commands\n')
+        if opcode in {PUT_OPCODE, GET_OPCODE, SUMMARY_OPCODE, CHANGE_OPCODE, HELP_OPCODE}:
+            handlers = {
+                PUT_OPCODE: handle_put_request,
+                GET_OPCODE: handle_get_request,
+                SUMMARY_OPCODE: handle_summary_request,
+                CHANGE_OPCODE: handle_change_request,
+                HELP_OPCODE: handle_help_request,
+            }
+            handlers[opcode](client, command_str)
+        else:
+            print('\nThis command is not supported! Please type "help" for a list of commands\n')
+            client_send(client, opcode)
 
         if choice == 'bye':
             print("Exit selected")
