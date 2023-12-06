@@ -1,6 +1,21 @@
 import socket
-import string
 import threading
+
+from ftp_constants import (
+    SERVER_FILES_DIRECTORY,
+    CLIENT_FILES_DIRECTORY,
+    FILE_SIZE_BYTES,
+    SUMMARY_OPCODE,
+    HELP_RESPONSE,
+    PUT_OPCODE,
+    EMPTY_FIRST_BITS,
+    STATISTICAL_SUMMARY,
+    GET_OPCODE,
+    ERROR_FILE_NOT_FOUND,
+    CHANGE_OPCODE,
+    CORRECT_GET,
+    HELP_OPCODE
+)
 
 from ftp_functions.ftp_functions import (
     get_binary_string,
@@ -11,19 +26,6 @@ from ftp_functions.ftp_functions import (
     search_file,
     get_file_size,
     get_file_binary
-)
-from ftp_constants import (
-    PUT_OPCODE,
-    GET_OPCODE,
-    CHANGE_OPCODE,
-    SUMMARY_OPCODE,
-    HELP_OPCODE,
-    HELP_RESPONSE,
-    FILE_SIZE_BYTES,
-    SERVER_FILES_DIRECTORY,
-    ERROR_FILE_NOT_FOUND,
-    EMPTY_FIRST_BITS,
-    CORRECT_GET
 )
 
 clients = []
@@ -58,7 +60,8 @@ def handle_put_request(request):
     # the file data - be thorough - the file data is saved in 'fileData' - request should technically be an empty string
     fileData, request = separate_bytes(request, fileSize)
 
-    create_file(SERVER_FILES_DIRECTORY, get_string_from_binary(fileName), get_string_from_binary(fileData))
+    create_file(SERVER_FILES_DIRECTORY, get_string_from_binary(fileName),
+                get_string_from_binary(fileData))
 
     return '00000000'
 
@@ -78,6 +81,42 @@ def handle_get_request(request):
         sizeOfFile = get_file_size(SERVER_FILES_DIRECTORY, fileName)
         fileData = get_file_binary(SERVER_FILES_DIRECTORY, fileName)
         return CORRECT_GET + fileNameLengthBin + fileNameBin + sizeOfFile + fileData
+
+
+def handle_summary_filename(request):
+    fileNameLengthBin = request[:5]
+    request = request[5:]
+
+    fileNameLength = get_decimal_from_binary(fileNameLengthBin)
+
+    fileNameBin, request = separate_bytes(request, fileNameLength)
+    fileName = get_string_from_binary(fileNameBin)
+    if not search_file(SERVER_FILES_DIRECTORY, fileName):
+        return ERROR_FILE_NOT_FOUND + EMPTY_FIRST_BITS
+    else:
+        # At this point we have Res-code, filename length and filename all we need is file size and file data
+        sizeOfFile = get_file_size(SERVER_FILES_DIRECTORY, fileName)
+        fileData = get_file_binary(SERVER_FILES_DIRECTORY, fileName)
+
+        # print("File data: " + fileData)
+        numbers_str = (get_string_from_binary(fileData))
+        # print(get_string_from_binary(fileData))
+
+        numbers = [float(num) for num in numbers_str.split()]
+
+        max_value = max(numbers)
+        min_value = min(numbers)
+        avg_value = sum(numbers) / len(numbers)
+
+        # Create the summary response
+        summary_data = f"Summary for {fileName}:\nMaximum: {max_value}\nMinimum: {min_value}\nAverage: {avg_value}"
+
+        # Create a summary file
+        create_file(CLIENT_FILES_DIRECTORY, 'summary.txt',
+                    summary_data)
+
+        response = STATISTICAL_SUMMARY + fileNameLengthBin + fileNameBin + sizeOfFile + fileData
+        return response
 
 
 # The purpose of this function is to listen to the client's requests and to reply to the client
@@ -104,7 +143,9 @@ def handle_client(client):
         elif opcode == CHANGE_OPCODE:
             print("CHANGE")
         elif opcode == SUMMARY_OPCODE:
-            print("SUMMARY")
+            summary_request = handle_summary_filename(message)
+            server_send(client, summary_request)
+            # print("SUMMARY")
         elif opcode == HELP_OPCODE:
             help_string = handle_request_help()
             server_send(client, help_string)
