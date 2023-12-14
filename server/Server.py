@@ -3,7 +3,6 @@ import threading
 
 from ftp_constants import (
     SERVER_FILES_DIRECTORY,
-    CLIENT_FILES_DIRECTORY,
     FILE_SIZE_BYTES,
     SUMMARY_OPCODE,
     HELP_RESPONSE,
@@ -14,7 +13,7 @@ from ftp_constants import (
     ERROR_FILE_NOT_FOUND,
     CHANGE_OPCODE,
     CORRECT_GET,
-    HELP_OPCODE
+    HELP_OPCODE, UNSUCCESSFUL_CHANGE, CORRECT_PUT_CHANGE, ERROR_UNKNOWN_REQUEST
 )
 
 from ftp_functions.ftp_functions import (
@@ -25,7 +24,9 @@ from ftp_functions.ftp_functions import (
     create_file,
     search_file,
     get_file_size,
-    get_file_binary
+    get_file_binary,
+    change_file_name,
+    process_file_data
 )
 
 clients = []
@@ -63,7 +64,7 @@ def handle_put_request(request):
     create_file(SERVER_FILES_DIRECTORY, get_string_from_binary(fileName),
                 get_string_from_binary(fileData))
 
-    return '00000000'
+    return CORRECT_PUT_CHANGE + EMPTY_FIRST_BITS
 
 
 def handle_get_request(request):
@@ -83,7 +84,7 @@ def handle_get_request(request):
         return CORRECT_GET + fileNameLengthBin + fileNameBin + sizeOfFile + fileData
 
 
-def handle_summary_filename(request):
+def handle_summary_filename_request(request):
     fileNameLengthBin = request[:5]
     request = request[5:]
 
@@ -92,34 +93,62 @@ def handle_summary_filename(request):
     fileNameBin, request = separate_bytes(request, fileNameLength)
     fileName = get_string_from_binary(fileNameBin)
     if not search_file(SERVER_FILES_DIRECTORY, fileName):
-        return ERROR_FILE_NOT_FOUND + EMPTY_FIRST_BITS
+        return EMPTY_FIRST_BITS + ERROR_FILE_NOT_FOUND
     else:
         # At this point we have Res-code, filename length and filename all we need is file size and file data
         sizeOfFile = get_file_size(SERVER_FILES_DIRECTORY, fileName)
         fileData = get_file_binary(SERVER_FILES_DIRECTORY, fileName)
 
-        # print("File data: " + fileData)
-        numbers_str = (get_string_from_binary(fileData))
-        # print(get_string_from_binary(fileData))
-
-        numbers = [float(num) for num in numbers_str.split()]
-
-        max_value = max(numbers)
-        min_value = min(numbers)
-        avg_value = sum(numbers) / len(numbers)
-
-        # Create the summary response
-        summary_data = f"Summary for {fileName}:\nMaximum: {max_value}\nMinimum: {min_value}\nAverage: {avg_value}"
-
-        # Create a summary file
-        create_file(CLIENT_FILES_DIRECTORY, 'summary.txt',
-                    summary_data)
+        # Process file data and get summary
+        process_file_data(fileData)
+        # print(process_file_data(fileData))
 
         response = STATISTICAL_SUMMARY + fileNameLengthBin + fileNameBin + sizeOfFile + fileData
         return response
 
 
+# handle unknown request
+def handle_unknown_request():
+    return ERROR_UNKNOWN_REQUEST + EMPTY_FIRST_BITS
+
+
+def handle_change_filename_request(request):
+    # Extract the length of the old filename
+    oldFileNameLengthBin = request[:5]
+    # print("Old fileNameLengthBin: " + oldFileNameLengthBin)
+    request = request[5:]
+    # print("Remaining request after oldFileNameLengthBin: " + request)
+    oldFileNameLength = get_decimal_from_binary(oldFileNameLengthBin)
+
+    # Extract the old filename
+    oldFileNameBin, request = separate_bytes(request, oldFileNameLength)
+    oldFileName = get_string_from_binary(oldFileNameBin)
+    # print("Old FileName: " + oldFileName)
+
+    # Extract the length of the new filename
+    newFileNameLengthBin = request[:5]
+    # print("New fileNameLengthBin: " + newFileNameLengthBin)
+    request = request[5:]
+    # print("Remaining request after newFileNameLengthBin: " + request)
+    newFileNameLength = get_decimal_from_binary(newFileNameLengthBin)
+
+    # Extract the new filename
+    newFileNameBin, request = separate_bytes(request, newFileNameLength)
+    newFileName = get_string_from_binary(newFileNameBin)
+    # print("New FileName: " + newFileName)
+
+    if not search_file(SERVER_FILES_DIRECTORY, oldFileName):
+        print("Unsuccessful change: File not found.")
+        return UNSUCCESSFUL_CHANGE + EMPTY_FIRST_BITS
+    else:
+        # At this point, you have Res-code
+        change_file_name(oldFileName, newFileName)
+        print("Successful change: File names updated.")
+        return CORRECT_PUT_CHANGE + EMPTY_FIRST_BITS
+
+
 # The purpose of this function is to listen to the client's requests and to reply to the client
+
 def handle_client(client):
     while True:
         # this 'message' is what the client sent to the server
@@ -141,14 +170,21 @@ def handle_client(client):
             # print("Server sending: " + get_response)
             server_send(client, get_response)
         elif opcode == CHANGE_OPCODE:
-            print("CHANGE")
+            change_response = handle_change_filename_request(message)
+            server_send(client, change_response)
+            print("Server sending: " + change_response)
         elif opcode == SUMMARY_OPCODE:
-            summary_request = handle_summary_filename(message)
-            server_send(client, summary_request)
+            summary_response = handle_summary_filename_request(message)
+            server_send(client, summary_response)
             # print("SUMMARY")
         elif opcode == HELP_OPCODE:
             help_string = handle_request_help()
             server_send(client, help_string)
+        else:
+            # Handle unknown request
+            unknown_response = handle_unknown_request()
+            server_send(client, unknown_response)
+            print("Server sending: " + unknown_response)
 
 
 # This is where the initial server creation is made

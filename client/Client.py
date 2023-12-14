@@ -10,9 +10,10 @@ from ftp_functions.ftp_functions import (
     get_OPCODE,
     get_fileName_length,
     summary_command_builder,
+    change_command_builder,
     get_decimal_from_binary,
     separate_bytes,
-    create_file
+    create_file, validate_filename_length
 )
 from ftp_constants import (
     PUT_OPCODE,
@@ -25,7 +26,8 @@ from ftp_constants import (
     STATISTICAL_SUMMARY,
     HELP_RESPONSE,
     FILE_SIZE_BYTES,
-    CLIENT_FILES_DIRECTORY
+    CLIENT_FILES_DIRECTORY,
+    EMPTY_FIRST_BITS
 )
 
 
@@ -54,10 +56,12 @@ def handle_server(server):
     while True:
         # This is the messages the server sends the client
         message = server.recv(4096).decode()
-        # print("Server reply: " + message)
+        print("Server reply: " + message)
         # Need better handling
         opcode = message[:3]
         message = message[3:]
+
+        print(opcode)
 
         # From here redirect to corresponding request handler
         if opcode == CORRECT_PUT_CHANGE:
@@ -73,6 +77,47 @@ def handle_server(server):
             messageLength = get_decimal_from_binary(remaining_byte)
             response, message = separate_bytes(message, messageLength)
             print("\n" + get_string_from_binary(response) + "\n")
+        else:
+            print("Unknown opcode:", opcode)
+
+
+def send_request(client, opcode, request_builder):
+    request = opcode + request_builder
+    # print(f"{opcode.capitalize()} request: {request}")
+    client_send(client, request)
+
+
+def handle_put_request(client, command_str):
+    if validate_filename_length(command_str[1]):
+        send_request(client, PUT_OPCODE, put_command_builder(command_str))
+
+
+def handle_get_request(client, command_str):
+    if validate_filename_length(command_str[1]):
+        send_request(client, GET_OPCODE, get_command_builder(command_str))
+
+
+def handle_summary_request(client, command_str):
+    if validate_filename_length(command_str[1]):
+        send_request(client, SUMMARY_OPCODE, summary_command_builder(command_str))
+
+
+def handle_change_request(client, command_str):
+    if len(command_str) > 1 and validate_filename_length(command_str[1]):
+        change_request_old = change_command_builder(command_str)
+        # print(f"Change request: {change_request_old}")
+
+        if len(command_str) > 2 and validate_filename_length(command_str[2]):
+            change_request_new = change_command_builder([command_str[0], command_str[2]])
+            send_request(client, CHANGE_OPCODE, change_request_old + change_request_new)
+        else:
+            print("\nCommand is not complete, please specify a second file!\n")
+    else:
+        print("\nCommand is not complete, please specify a file!\n")
+
+
+def handle_help_request(client):
+    send_request(client, EMPTY_FIRST_BITS, HELP_OPCODE)
 
 
 def main():
@@ -102,49 +147,18 @@ def main():
         # The first 3 bits in the OPCODE byte
         opcode = get_OPCODE(command_str[0])
 
-        if opcode != 'Command not supported':
-            if opcode == PUT_OPCODE or opcode == GET_OPCODE or opcode == CHANGE_OPCODE or opcode == SUMMARY_OPCODE:
-                if len(command_str) > 1:
-                    if opcode == PUT_OPCODE:
-                        if len(command_str[1]) <= 31:
-                            put_request = put_command_builder(command_str)
-                            put_request = opcode + put_request
-                            # print("Put request: " + put_request)
-                            client_send(client, put_request)
-                        else:
-                            print("\nThe name of the file exceeds 31 characters, please refactor the file's name\n")
-                    elif opcode == GET_OPCODE:
-
-                        if len(command_str[1]) <= 31:
-                            get_request = get_command_builder(command_str)
-                            get_request = opcode + get_request
-                            # print("Get request: " + get_request)
-                            client_send(client, get_request)
-                        else:
-                            print("\nThe name of the file exceeds 31 characters, please refactor the file's name\n")
-
-                    elif opcode == SUMMARY_OPCODE:
-                        if len(command_str[1]) <= 31:
-                            summary_request = opcode + summary_command_builder(command_str)
-                            # print("Summary request: " + summary_request)
-                            client_send(client, summary_request)
-                        else:
-                            print("\nThe name of the file exceeds 31 characters, please refactor the file's name\n")
-
-                    elif opcode == CHANGE_OPCODE:
-                        print("Hello, function get_file_path now requires an new argument (directory) please review!")
-                        # change_request = opcode + change_file_name(command_str)
-                        # client_send(client, change_request)
-
-                else:
-                    print("\nCommand is not complete, please specify a file!\n")
-
-            if opcode == HELP_OPCODE:
-                help_request = opcode + get_fileName_length("")
-                client_send(client, help_request)
-
+        if opcode in {PUT_OPCODE, GET_OPCODE, SUMMARY_OPCODE, CHANGE_OPCODE, HELP_OPCODE}:
+            handlers = {
+                PUT_OPCODE: handle_put_request,
+                GET_OPCODE: handle_get_request,
+                SUMMARY_OPCODE: handle_summary_request,
+                CHANGE_OPCODE: handle_change_request,
+                HELP_OPCODE: handle_help_request,
+            }
+            handlers[opcode](client, command_str)
         else:
             print('\nThis command is not supported! Please type "help" for a list of commands\n')
+            client_send(client, opcode)
 
         if choice == 'bye':
             print("Exit selected")
@@ -152,7 +166,6 @@ def main():
             sys.exit()
 
 
-# This method is used to send information to the server
 def client_send(client, message):
     client.send(message.encode('utf-8'))
 
