@@ -1,13 +1,13 @@
 import os
 from ftp_constants import (
+    SERVER_FILES_DIRECTORY,
+    CLIENT_FILES_DIRECTORY,
+    FILE_SIZE_BYTES,
+    SUMMARY_OPCODE,
     PUT_OPCODE,
     GET_OPCODE,
     CHANGE_OPCODE,
-    SUMMARY_OPCODE,
-    HELP_OPCODE,
-    FILE_SIZE_BYTES,
-    CLIENT_FILES_DIRECTORY,
-    SERVER_FILES_DIRECTORY
+    HELP_OPCODE
 )
 
 
@@ -28,7 +28,7 @@ def get_OPCODE(command_str):
 
 
 # This method returns the file path for files in the 'client_files' directory
-def getFilePath(directory, fileName):
+def get_file_path(directory, fileName):
     file_path = os.path.join(directory, fileName)
     return file_path
 
@@ -59,7 +59,7 @@ def get_binary_string(string):
 def get_file_size(directory, fileName):
     # REQUIRED 4 bytes for FS - 8 bits to a byte * 4
     numberOfBits = 8 * FILE_SIZE_BYTES
-    file_path = getFilePath(directory, fileName)
+    file_path = get_file_path(directory, fileName)
     sizeOfFile = os.path.getsize(file_path)
     sizeOfFileBin = bin(sizeOfFile)[2:]
     return sizeOfFileBin.zfill(numberOfBits)
@@ -67,7 +67,7 @@ def get_file_size(directory, fileName):
 
 # This method takes a file's name and converts its contents to binary
 def get_file_binary(directory, fileName):
-    file_path = getFilePath(directory, fileName)
+    file_path = get_file_path(directory, fileName)
     with open(file_path, 'rb') as file:
         binary_data = ''.join(format(byte, '08b') for byte in file.read())
 
@@ -124,35 +124,24 @@ def get_command_builder(command_str):
 
 
 def summary_command_builder(command_str):
-    # Extract the file name from the command
-    file_name = command_str[1]
-    file_path = getFilePath(file_name)
-    if not os.path.exists(file_path):
-        return f"File '{file_name}' does not exist."
-
-    with open(file_path, 'r') as file:
-        numbers = file.read()
-
-    numbers = [float(num) for num in numbers.split()]
-
-    max_value = max(numbers)
-    min_value = min(numbers)
-    avg_value = sum(numbers) / len(numbers)
-
-    # Create the summary response
-    summary_response = f"Summary for {file_name}:\nMaximum: {max_value}\nMinimum: {min_value}\nAverage: {avg_value}"
-
-    summary_file_path = os.path.join('client_files', 'summary.txt')
-    with open(summary_file_path, 'w') as summary:
-        summary.write(summary_response)
-
-    return summary_response
+    # the 5 bits in the OPCODE byte (FL)
+    fileNameLength = get_fileName_length(command_str[1])
+    # print("File name length " + fileNameLength)
+    # this is the binary value of the file name in FL bytes
+    fileNameBinary = get_binary_string(command_str[1])
+    # print("File name in binary: " + fileNameBinary)
+    # this is just a verification to make sure that the binary string corresponds to inputted file name
+    # print(get_string_from_binary(fileNameBinary))
+    file_data = get_file_binary(SERVER_FILES_DIRECTORY, command_str[1])
+    # print("File data: " + file_data)
+    # print(get_string_from_binary(file_data))
+    return fileNameLength + fileNameBinary + file_data
 
 
 def change_file_name(directory, command_str):
     # Extract the file name from the command
     file_name = command_str[1]
-    file_path_old = getFilePath(directory, file_name)
+    file_path_old = get_file_path(directory, file_name)
     if not os.path.exists(file_path_old):
         return f"File '{file_name}' does not exist."
 
