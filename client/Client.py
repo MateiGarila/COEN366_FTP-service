@@ -120,18 +120,21 @@ def handle_help_request(client):
     send_request(client, EMPTY_FIRST_BITS, HELP_OPCODE)
 
 
-def main():
-    # DGRAM = UDP
-    # client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    # STREAM = TCP
-    client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    port = 12000
-    client.connect(('127.0.0.1', port))
+def main(ip, port, protocol):
+    if protocol == '1':
+        client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        client.connect((ip, port))
+        print(f"Connected to {ip}:{port} using TCP")
+    elif protocol == '2':
+        client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        print(f"Connected to {ip}:{port} using UDP")
 
+    # Receive initial message from the server
     alias = input(client.recv(1024).decode())
-    alias_message = f'{alias}: {input("")}'
-    client.send(alias_message.encode('utf-8'))
-    print(client.recv(1024).decode())
+    # Send the alias message to the server
+    # alias_message = f'{alias}: {input("")}'
+    client.sendto(alias.encode('utf-8'), (ip, port))
+    # print(alias)
 
     thread = threading.Thread(target=handle_server, args=(client,))
     thread.start()
@@ -163,6 +166,7 @@ def main():
         if choice == 'bye':
             print("Exit selected")
             client.close()
+            thread.join()
             sys.exit()
 
 

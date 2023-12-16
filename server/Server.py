@@ -187,32 +187,53 @@ def handle_client(client):
             print("Server sending: " + unknown_response)
 
 
+def handle_client_tcp(conn, addr):
+    print(f'Connection has been established with {str(addr)}')
+    conn.send('What is your alias user? '.encode('utf-8'))
+    alias = conn.recv(1024).decode()
+    aliases.append(alias)
+    clients.append(conn)
+    print('The alias of this client is: ' + alias)
+    conn.send(('Thank you for connecting ' + alias + '!').encode('utf-8'))
+    handle_client(conn)
+
+
+def handle_client_udp(server_socket, client_address):
+    print(f'Connection has been established with {str(client_address)}')
+    server_socket.sendto('What is your alias user? '.encode('utf-8'), client_address)
+    alias, _ = server_socket.recvfrom(1024).decode()
+    aliases.append(alias)
+    clients.append(server_socket)
+    print('The alias of this client is: ' + alias)
+    server_socket.sendto(('Thank you for connecting ' + alias + '!').encode('utf-8'), client_address)
+    handle_client(server_socket)
+
+
 # This is where the initial server creation is made
-def main():
-    host = '127.0.0.1'
-    port = 12000
-    # DGRAM = UDP
-    # server = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    # STREAM = TCP
-    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server.bind((host, port))
-    server.listen()
+def main(ip, port, protocol):
+    host = ip
 
-    print('Server is listening')
+    if protocol == '1':
+        server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        server_socket.bind((host, port))
+        server_socket.listen()
 
-    while True:
-        conn, addr = server.accept()
-        print(f'Connection has been established with {str(addr)}')
-        conn.send('What is your alias user? '.encode('utf-8'))
-        alias = conn.recv(1024).decode()
-        aliases.append(alias)
-        clients.append(conn)
-        print('The alias of this client is: ' + alias)
-        conn.send(('Thank you for connecting ' + alias + '!').encode('utf-8'))
+        print('Server is listening... TCP')
 
-        # this thread's sole purpose is to listen to the SPECIFIED client's requests
-        thread = threading.Thread(target=handle_client, args=(conn,))
-        thread.start()
+        while True:
+            conn, addr = server_socket.accept()
+            thread = threading.Thread(target=handle_client_tcp, args=(conn, addr))
+            thread.start()
+
+    elif protocol == '2':
+        server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        server_socket.bind((host, port))
+        print('Server is listening... UDP')
+
+        while True:
+            data, client_address = server_socket.recvfrom(4096)
+            thread = threading.Thread(target=handle_client_udp, args=(server_socket, client_address))
+            thread.start()
 
 
 # This method is used to send information to the client
