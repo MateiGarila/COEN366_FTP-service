@@ -31,60 +31,16 @@ from ftp_constants import (
 )
 
 
-def handle_get_response(response):
-    # This part separates the remaining of the first byte (5 bits) to get the number of bytes for the file name
-    fileNameLength = response[:5]
-    response = response[5:]
-    fileNameLength = get_decimal_from_binary(fileNameLength)
-
-    # This part separates the CORRECT number of bytes reserved for the file name and saves it in 'fileName'
-    fileName, response = separate_bytes(response, fileNameLength)
-
-    # This part separates 4 bytes which are reserved for the File Size (FS) and saves it in 'fileSize'
-    fileSize, response = separate_bytes(response, FILE_SIZE_BYTES)
-    fileSize = get_decimal_from_binary(fileSize)
-
-    # This part separates the remaining bytes reserved for the file data - normally the remaining bytes are all about
-    # the file data - be thorough - the file data is saved in 'fileData' - request should technically be an empty string
-    fileData, response = separate_bytes(response, fileSize)
-
-    create_file(CLIENT_FILES_DIRECTORY, get_string_from_binary(fileName), get_string_from_binary(fileData))
-
-
-# This method's purpose is to listen to the server's replies and to print them in the console
-def handle_server(server):
-    while True:
-        # This is the messages the server sends the client
-        message = server.recv(4096).decode()
-        print("Server reply: " + message)
-        # Need better handling
-        opcode = message[:3]
-        message = message[3:]
-
-        print(opcode)
-
-        # From here redirect to corresponding request handler
-        if opcode == CORRECT_PUT_CHANGE:
-            print('\nFile successfully updated!\n')
-        elif opcode == CORRECT_GET:
-            print("\nFile successfully fetched\n")
-            handle_get_response(message)
-        elif opcode == STATISTICAL_SUMMARY:
-            print("\nFile successfully fetched statistical summary!\n")
-        elif opcode == HELP_RESPONSE:
-            remaining_byte = message[:5]
-            message = message[5:]
-            messageLength = get_decimal_from_binary(remaining_byte)
-            response, message = separate_bytes(message, messageLength)
-            print("\n" + get_string_from_binary(response) + "\n")
-        else:
-            print("Unknown opcode:", opcode)
-
-
 def send_request(client, opcode, request_builder):
     request = opcode + request_builder
     # print(f"{opcode.capitalize()} request: {request}")
     client_send(client, request)
+
+
+def send_request_udp(client, opcode, request_builder, client_address):
+    request = opcode + request_builder
+    # print(f"{opcode.capitalize()} request: {request}")
+    client_send(client, request, client_address)
 
 
 def handle_put_request(client, command_str):
@@ -120,24 +76,100 @@ def handle_help_request(client):
     send_request(client, EMPTY_FIRST_BITS, HELP_OPCODE)
 
 
+def handle_get_response(response):
+    # This part separates the remaining of the first byte (5 bits) to get the number of bytes for the file name
+    fileNameLength = response[:5]
+    response = response[5:]
+    fileNameLength = get_decimal_from_binary(fileNameLength)
+
+    # This part separates the CORRECT number of bytes reserved for the file name and saves it in 'fileName'
+    fileName, response = separate_bytes(response, fileNameLength)
+
+    # This part separates 4 bytes which are reserved for the File Size (FS) and saves it in 'fileSize'
+    fileSize, response = separate_bytes(response, FILE_SIZE_BYTES)
+    fileSize = get_decimal_from_binary(fileSize)
+
+    # This part separates the remaining bytes reserved for the file data - normally the remaining bytes are all about
+    # the file data - be thorough - the file data is saved in 'fileData' - request should technically be an empty string
+    fileData, response = separate_bytes(response, fileSize)
+
+    create_file(CLIENT_FILES_DIRECTORY, get_string_from_binary(fileName), get_string_from_binary(fileData))
+
+
+# This method's purpose is to listen to the server's replies and to print them in the console
+def handle_server_tcp(client_socket):
+    while True:
+        # This is the messages the server sends the client
+        message = client_socket.recv(4096).decode()
+        print("Server reply: " + message)
+        # Need better handling
+        opcode = message[:3]
+        message = message[3:]
+
+        print(opcode)
+
+        # From here redirect to corresponding request handler
+        if opcode == CORRECT_PUT_CHANGE:
+            print('\nFile successfully updated!\n')
+        elif opcode == CORRECT_GET:
+            print("\nFile successfully fetched\n")
+            handle_get_response(message)
+        elif opcode == STATISTICAL_SUMMARY:
+            print("\nFile successfully fetched statistical summary!\n")
+        elif opcode == HELP_RESPONSE:
+            remaining_byte = message[:5]
+            message = message[5:]
+            messageLength = get_decimal_from_binary(remaining_byte)
+            response, message = separate_bytes(message, messageLength)
+            print("\n" + get_string_from_binary(response) + "\n")
+        else:
+            print("Unknown opcode:", opcode)
+
+
+def handle_server_udp(client_socket):
+    # This is the messages the server sends the client
+    data, server_address = client_socket.recvfrom(1024)
+    message = data.decode('utf-8')
+    print(f"Received response from server {message}")
+
+    # Need better handling
+    opcode = message[:3]
+    message = message[3:]
+
+    print(opcode)
+
+    # From here redirect to corresponding request handler
+    if opcode == CORRECT_PUT_CHANGE:
+        print('\nFile successfully updated!\n')
+    elif opcode == CORRECT_GET:
+        print("\nFile successfully fetched\n")
+        handle_get_response(message)
+    elif opcode == STATISTICAL_SUMMARY:
+        print("\nFile successfully fetched statistical summary!\n")
+    elif opcode == HELP_RESPONSE:
+        remaining_byte = message[:5]
+        message = message[5:]
+        messageLength = get_decimal_from_binary(remaining_byte)
+        response, message = separate_bytes(message, messageLength)
+        print("\n" + get_string_from_binary(response) + "\n")
+    else:
+        print("Unknown opcode:", opcode)
+
+
 def main(ip, port, protocol):
     if protocol == '1':
-        client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        client.connect((ip, port))
+        client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        client_socket.connect((ip, port))
         print(f"Connected to {ip}:{port} using TCP")
+        thread = threading.Thread(target=handle_server_tcp, args=(client_socket,))
+        thread.start()
+
     elif protocol == '2':
-        client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        print(f"Connected to {ip}:{port} using UDP")
-
-    # Receive initial message from the server
-    alias = input(client.recv(1024).decode())
-    # Send the alias message to the server
-    # alias_message = f'{alias}: {input("")}'
-    client.sendto(alias.encode('utf-8'), (ip, port))
-    # print(alias)
-
-    thread = threading.Thread(target=handle_server, args=(client,))
-    thread.start()
+        client_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        server_address = (ip, port)
+        print(f"Connected to {server_address} using UDP")
+        thread = threading.Thread(target=handle_server_udp, args=(client_socket,))
+        thread.start()
 
     while True:
         time.sleep(1)
@@ -158,14 +190,14 @@ def main(ip, port, protocol):
                 CHANGE_OPCODE: handle_change_request,
                 HELP_OPCODE: handle_help_request,
             }
-            handlers[opcode](client, command_str)
+            handlers[opcode](client_socket, command_str)
         else:
             print('\nThis command is not supported! Please type "help" for a list of commands\n')
-            client_send(client, opcode)
+            client_send(client_socket, opcode)
 
         if choice == 'bye':
             print("Exit selected")
-            client.close()
+            client_socket.close()
             thread.join()
             sys.exit()
 

@@ -149,11 +149,12 @@ def handle_change_filename_request(request):
 
 # The purpose of this function is to listen to the client's requests and to reply to the client
 
-def handle_client(client):
+def handle_client_tcp(client_socket, client_address):
     while True:
         # this 'message' is what the client sent to the server
-        message = client.recv(4096).decode()
-        # print("Message received by server: " + message)
+        message = client_socket.recv(4096).decode()
+        print(f"Received request from {client_address}: \n{message}")
+
         opcode = message[:3]
         fileLength = message[3:8]
         message = message[3:]
@@ -164,54 +165,83 @@ def handle_client(client):
         # From here redirect to corresponding request handler
         if opcode == PUT_OPCODE:
             put_response = handle_put_request(message)
-            server_send(client, put_response)
+            server_send(client_socket, put_response)
         elif opcode == GET_OPCODE:
             get_response = handle_get_request(message)
             # print("Server sending: " + get_response)
-            server_send(client, get_response)
+            server_send(client_socket, get_response)
         elif opcode == CHANGE_OPCODE:
             change_response = handle_change_filename_request(message)
-            server_send(client, change_response)
+            server_send(client_socket, change_response)
             print("Server sending: " + change_response)
         elif opcode == SUMMARY_OPCODE:
             summary_response = handle_summary_filename_request(message)
-            server_send(client, summary_response)
+            server_send(client_socket, summary_response)
             # print("SUMMARY")
         elif opcode == HELP_OPCODE:
             help_string = handle_request_help()
-            server_send(client, help_string)
+            server_send(client_socket, help_string)
         else:
             # Handle unknown request
             unknown_response = handle_unknown_request()
-            server_send(client, unknown_response)
+            server_send(client_socket, unknown_response)
             print("Server sending: " + unknown_response)
 
 
-def handle_client_tcp(conn, addr):
-    print(f'Connection has been established with {str(addr)}')
-    conn.send('What is your alias user? '.encode('utf-8'))
-    alias = conn.recv(1024).decode()
-    aliases.append(alias)
-    clients.append(conn)
-    print('The alias of this client is: ' + alias)
-    conn.send(('Thank you for connecting ' + alias + '!').encode('utf-8'))
-    handle_client(conn)
+def handle_client_udp(server_socket):
+    while True:
+        # this 'message' is what the client sent to the server
+        data, client_address = server_socket.recvfrom(1024)
+        message = data.decode('utf-8')
+        print(f"Received request from {client_address}: \n{message}")
+
+        opcode = message[:3]
+        fileLength = message[3:8]
+        message = message[3:]
+        # print("Opcode: " + opcode)
+        # print("File Length: " + fileLength)
+        # print("Message: " + message)
+
+        # From here redirect to corresponding request handler
+        if opcode == PUT_OPCODE:
+            put_response = handle_put_request(message)
+            server_send_udp(server_socket, put_response, client_address)
+        elif opcode == GET_OPCODE:
+            get_response = handle_get_request(message)
+            # print("Server sending: " + get_response)
+            server_send_udp(server_socket, get_response, client_address)
+        elif opcode == CHANGE_OPCODE:
+            change_response = handle_change_filename_request(message)
+            server_send_udp(server_socket, change_response, client_address)
+            print("Server sending: " + change_response)
+        elif opcode == SUMMARY_OPCODE:
+            summary_response = handle_summary_filename_request(message)
+            server_send_udp(server_socket, summary_response, client_address)
+            # print("SUMMARY")
+        elif opcode == HELP_OPCODE:
+            help_string = handle_request_help()
+            server_send_udp(server_socket, help_string)
+        else:
+            # Handle unknown request
+            unknown_response = handle_unknown_request()
+            server_send_udp(server_socket, unknown_response, client_address)
+            print("Server sending: " + unknown_response)
 
 
-def handle_client_udp(server_socket, client_address):
-    print(f'Connection has been established with {str(client_address)}')
-    server_socket.sendto('What is your alias user? '.encode('utf-8'), client_address)
-    alias, _ = server_socket.recvfrom(1024).decode()
-    aliases.append(alias)
-    clients.append(server_socket)
-    print('The alias of this client is: ' + alias)
-    server_socket.sendto(('Thank you for connecting ' + alias + '!').encode('utf-8'), client_address)
-    handle_client(server_socket)
+def start_client_tcp(client_socket, client_address):
+    print(f'TCP Connection has been established with {str(client_address)}')
+    handle_client_tcp(client_socket, client_address)
+
+
+def start_client_udp(server_socket, client_address):
+    print(f'UDP Connection has been established with {str(client_address)}')
+    handle_client_udp(server_socket)
 
 
 # This is where the initial server creation is made
 def main(ip, port, protocol):
     host = ip
+    client_address = (ip, port)
 
     if protocol == '1':
         server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -222,7 +252,7 @@ def main(ip, port, protocol):
 
         while True:
             conn, addr = server_socket.accept()
-            thread = threading.Thread(target=handle_client_tcp, args=(conn, addr))
+            thread = threading.Thread(target=start_client_tcp, args=(conn, addr))
             thread.start()
 
     elif protocol == '2':
@@ -231,14 +261,18 @@ def main(ip, port, protocol):
         print('Server is listening... UDP')
 
         while True:
-            data, client_address = server_socket.recvfrom(4096)
-            thread = threading.Thread(target=handle_client_udp, args=(server_socket, client_address))
+            thread = threading.Thread(target=start_client_udp, args=(server_socket, client_address))
             thread.start()
+            thread.join()
 
 
 # This method is used to send information to the client
 def server_send(server, message):
     server.send(message.encode('utf-8'))
+
+
+def server_send_udp(server, message, client_address):
+    server.sendto(message.encode('utf-8'), client_address)
 
 
 if __name__ == '__main__':
