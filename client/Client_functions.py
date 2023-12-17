@@ -80,11 +80,11 @@ def handle_change_request(client, command_str, protocol, server_address):
         print("\nCommand is not complete, please specify a file!\n")
 
 
-def handle_help_request(client, protocol, server_address):
+def handle_help_request(client, command_str, protocol, server_address):
     if protocol == '1':
-        send_request_tcp(client, EMPTY_FIRST_BITS, HELP_OPCODE)
+        send_request_tcp(client, HELP_OPCODE, EMPTY_FIRST_BITS)
     elif protocol == '2':
-        send_request_udp(client, EMPTY_FIRST_BITS, HELP_OPCODE, server_address)
+        send_request_udp(client, HELP_OPCODE, EMPTY_FIRST_BITS, server_address)
 
 
 def handle_get_response(response):
