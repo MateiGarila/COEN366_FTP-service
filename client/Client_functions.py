@@ -28,7 +28,7 @@ from ftp_functions.ftp_functions import (
 )
 
 
-def send_request(client, opcode, request_builder):
+def send_request_tcp(client, opcode, request_builder):
     request = opcode + request_builder
     # print(f"{opcode.capitalize()} request: {request}")
     client_send(client, request)
@@ -40,37 +40,51 @@ def send_request_udp(client, opcode, request_builder, client_address):
     client_send_udp(client, request, client_address)
 
 
-def handle_put_request(client, command_str):
+def handle_put_request(client, command_str, protocol, server_address):
     if validate_filename_length(command_str[1]):
-        send_request(client, PUT_OPCODE, put_command_builder(command_str))
+        if protocol == '1':
+            send_request_tcp(client, PUT_OPCODE, put_command_builder(command_str))
+        elif protocol == '2':
+            send_request_udp(client, PUT_OPCODE, put_command_builder(command_str), server_address)
 
 
-def handle_get_request(client, command_str):
+def handle_get_request(client, command_str, protocol, server_address):
     if validate_filename_length(command_str[1]):
-        send_request(client, GET_OPCODE, get_command_builder(command_str))
+        if protocol == '1':
+            send_request_tcp(client, GET_OPCODE, get_command_builder(command_str))
+        elif protocol == '2':
+            send_request_udp(client, GET_OPCODE, get_command_builder(command_str), server_address)
 
 
-def handle_summary_request(client, command_str):
+def handle_summary_request(client, command_str, protocol, server_address):
     if validate_filename_length(command_str[1]):
-        send_request(client, SUMMARY_OPCODE, summary_command_builder(command_str))
+        if protocol == '1':
+            send_request_tcp(client, SUMMARY_OPCODE, summary_command_builder(command_str))
+        elif protocol == '2':
+            send_request_udp(client, SUMMARY_OPCODE, summary_command_builder(command_str), server_address)
 
 
-def handle_change_request(client, command_str):
+def handle_change_request(client, command_str, protocol, server_address):
     if len(command_str) > 1 and validate_filename_length(command_str[1]):
         change_request_old = change_command_builder(command_str)
-        # print(f"Change request: {change_request_old}")
 
         if len(command_str) > 2 and validate_filename_length(command_str[2]):
             change_request_new = change_command_builder([command_str[0], command_str[2]])
-            send_request(client, CHANGE_OPCODE, change_request_old + change_request_new)
+            if protocol == '1':
+                send_request_tcp(client, CHANGE_OPCODE, change_request_old + change_request_new)
+            elif protocol == '2':
+                send_request_udp(client, CHANGE_OPCODE, change_request_old + change_request_new, server_address)
         else:
             print("\nCommand is not complete, please specify a second file!\n")
     else:
         print("\nCommand is not complete, please specify a file!\n")
 
 
-def handle_help_request(client):
-    send_request(client, EMPTY_FIRST_BITS, HELP_OPCODE)
+def handle_help_request(client, protocol, server_address):
+    if protocol == '1':
+        send_request_tcp(client, EMPTY_FIRST_BITS, HELP_OPCODE)
+    elif protocol == '2':
+        send_request_udp(client, EMPTY_FIRST_BITS, HELP_OPCODE, server_address)
 
 
 def handle_get_response(response):
@@ -132,7 +146,27 @@ def handle_server_udp(client_socket):
         data, server_address = client_socket.recvfrom(1024)
         message = data.decode()
         print(f"Received response from server {message}")
-        # client_send_udp(client_socket, message, server_address)
+        # Need better handling
+        opcode = message[:3]
+        message = message[3:]
+        print(opcode)
+
+        # From here redirect to corresponding request handler
+        if opcode == CORRECT_PUT_CHANGE:
+            print('\nFile successfully updated!\n')
+        elif opcode == CORRECT_GET:
+            print("\nFile successfully fetched\n")
+            handle_get_response(message)
+        elif opcode == STATISTICAL_SUMMARY:
+            print("\nFile successfully fetched statistical summary!\n")
+        elif opcode == HELP_RESPONSE:
+            remaining_byte = message[:5]
+            message = message[5:]
+            messageLength = get_decimal_from_binary(remaining_byte)
+            response, message = separate_bytes(message, messageLength)
+            print("\n" + get_string_from_binary(response) + "\n")
+        else:
+            print("Unknown opcode:", opcode)
 
 
 def client_send_udp(server_socket, message, client_address):

@@ -143,7 +143,17 @@ def handle_change_filename_request(request):
         return CORRECT_PUT_CHANGE + EMPTY_FIRST_BITS
 
 
-def handle_request(client_socket, client_address):
+def start_client_tcp(client_socket, client_address):
+    print(f'TCP Connection has been established with {str(client_address)}')
+    handle_request_tcp(client_socket, client_address)
+
+
+# This method is used to send information to the client
+def server_send_tcp(server_socket, message):
+    server_socket.send(message.encode('utf-8'))
+
+
+def handle_request_tcp(client_socket, client_address):
     while True:
         # this 'message' is what the client sent to the server
         message = client_socket.recv(4096).decode()
@@ -182,20 +192,10 @@ def handle_request(client_socket, client_address):
             print("Server sending: " + unknown_response)
 
 
-def start_client_tcp(client_socket, client_address):
-    print(f'TCP Connection has been established with {str(client_address)}')
-    handle_request(client_socket, client_address)
-
-
-# This method is used to send information to the client
-def server_send_tcp(server_socket, message):
-    server_socket.send(message.encode('utf-8'))
-
-
 def handle_udp_request(client_socket, client_address):
     while True:
         data, client_address = client_socket.recvfrom(1024)
-        message = client_socket.decode()
+        message = data.decode()
         print(f"Received request from {client_address}: \n{message}")
         opcode = message[:3]
         fileLength = message[3:8]
@@ -207,40 +207,35 @@ def handle_udp_request(client_socket, client_address):
         # From here redirect to corresponding request handler
         if opcode == PUT_OPCODE:
             put_response = handle_put_request(message)
-            server_send_udp(client_socket, put_response, client_address)
+            server_send_udp(client_socket, put_response)
         elif opcode == GET_OPCODE:
             get_response = handle_get_request(message)
             # print("Server sending: " + get_response)
-            server_send_udp(client_socket, get_response, client_address)
+            server_send_udp(client_socket, get_response)
         elif opcode == CHANGE_OPCODE:
             change_response = handle_change_filename_request(message)
-            server_send_udp(client_socket, change_response, client_address)
+            server_send_udp(client_socket, change_response)
             print("Server sending: " + change_response)
         elif opcode == SUMMARY_OPCODE:
             summary_response = handle_summary_filename_request(message)
-            server_send_udp(client_socket, summary_response, client_address)
+            server_send_udp(client_socket, summary_response)
             # print("SUMMARY")
         elif opcode == HELP_OPCODE:
             help_string = handle_request_help()
-            server_send_udp(client_socket, help_string, client_address)
+            server_send_udp(client_socket, help_string)
         else:
             # Handle unknown request
             unknown_response = handle_unknown_request()
-            server_send_udp(client_socket, unknown_response, client_address)
+            server_send_udp(client_socket, unknown_response)
             print("Server sending: " + unknown_response)
 
 
-# not working
 def start_client_udp(server_socket, client_address):
-    while True:
-        data, client_address = server_socket.recvfrom(1024)
-        message = data.decode()
-        print(f"Received request from {client_address}: {message}")
-        # message_to_client = input("Enter message to client: ")
-        # server_send_udp(server_socket, message_to_client, client_address)
-        # handle_udp_request(server_socket, client_address)
+    print(f'TCP Connection has been established with {str(client_address)}')
+    handle_udp_request(server_socket, client_address)
 
 
-def server_send_udp(server_socket, message, client_address):
+def server_send_udp(server_socket, message):
+    data, client_address = server_socket.recvfrom(1024)
     print(server_socket, message, client_address)
     server_socket.sendto(message.encode(), client_address)

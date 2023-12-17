@@ -6,30 +6,14 @@ import time
 from client.Client_functions import handle_server_tcp, handle_server_udp, client_send, handle_put_request, \
     handle_get_request, handle_summary_request, handle_change_request, handle_help_request, client_send_udp
 from ftp_functions.ftp_functions import (
-    put_command_builder,
-    get_command_builder,
-    get_string_from_binary,
-    get_OPCODE,
-    get_fileName_length,
-    summary_command_builder,
-    change_command_builder,
-    get_decimal_from_binary,
-    separate_bytes,
-    create_file, validate_filename_length
+    get_OPCODE
 )
 from ftp_constants import (
     PUT_OPCODE,
     GET_OPCODE,
     CHANGE_OPCODE,
     SUMMARY_OPCODE,
-    HELP_OPCODE,
-    CORRECT_PUT_CHANGE,
-    CORRECT_GET,
-    STATISTICAL_SUMMARY,
-    HELP_RESPONSE,
-    FILE_SIZE_BYTES,
-    CLIENT_FILES_DIRECTORY,
-    EMPTY_FIRST_BITS
+    HELP_OPCODE
 )
 
 
@@ -50,13 +34,6 @@ def main(ip, port, protocol):
         thread = threading.Thread(target=handle_server_udp, args=(client_socket,))
         thread.start()
 
-        while True:
-            time.sleep(1)
-            choice = input("Enter message to server (type 'exit' to quit): ")
-            if choice.lower() == 'exit':
-                break
-            client_send_udp(client_socket, choice, client_address)
-
     while True:
         time.sleep(1)
         choice = input("FTP-Client>")
@@ -76,10 +53,13 @@ def main(ip, port, protocol):
                 CHANGE_OPCODE: handle_change_request,
                 HELP_OPCODE: handle_help_request,
             }
-            handlers[opcode](client_socket, command_str)
+            handlers[opcode](client_socket, command_str, protocol, client_address)
         else:
             print('\nThis command is not supported! Please type "help" for a list of commands\n')
-            client_send(client_socket, opcode)
+            if protocol == '1':
+                client_send(client_socket, opcode)
+            elif protocol == '2':
+                client_send_udp(client_socket, opcode, client_address)
 
         if choice == 'bye':
             print("Exit selected")
