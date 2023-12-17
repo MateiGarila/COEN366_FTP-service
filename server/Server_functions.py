@@ -144,7 +144,7 @@ def handle_change_filename_request(request):
 
 
 def start_client_tcp(client_socket, client_address):
-    print(f'TCP Connection has been established with {str(client_address)}')
+    # print(f'TCP Connection has been established with {str(client_address)}')
     handle_request_tcp(client_socket, client_address)
 
 

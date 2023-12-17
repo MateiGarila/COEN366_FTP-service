@@ -3,7 +3,7 @@ import sys
 import threading
 import time
 
-from client.Client_functions import handle_server_tcp, handle_server_udp, client_send, handle_put_request, \
+from client.Client_functions import handle_server_tcp, handle_server_udp, client_send_tcp, handle_put_request, \
     handle_get_request, handle_summary_request, handle_change_request, handle_help_request, client_send_udp
 from ftp_functions.ftp_functions import (
     get_OPCODE
@@ -57,7 +57,7 @@ def main(ip, port, protocol):
         else:
             print('\nThis command is not supported! Please type "help" for a list of commands\n')
             if protocol == '1':
-                client_send(client_socket, opcode)
+                client_send_tcp(client_socket, opcode)
             elif protocol == '2':
                 client_send_udp(client_socket, opcode, client_address)
 

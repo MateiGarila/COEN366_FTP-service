@@ -31,7 +31,7 @@ from ftp_functions.ftp_functions import (
 def send_request_tcp(client, opcode, request_builder):
     request = opcode + request_builder
     # print(f"{opcode.capitalize()} request: {request}")
-    client_send(client, request)
+    client_send_tcp(client, request)
 
 
 def send_request_udp(client, opcode, request_builder, client_address):
@@ -136,7 +136,7 @@ def handle_server_tcp(client_socket):
             print("Unknown opcode:", opcode)
 
 
-def client_send(server_socket, message):
+def client_send_tcp(server_socket, message):
     server_socket.send(message.encode('utf-8'))
 
 
