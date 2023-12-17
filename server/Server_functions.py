@@ -1,5 +1,3 @@
-import time
-
 from ftp_constants import (
     SERVER_FILES_DIRECTORY,
     FILE_SIZE_BYTES,
@@ -162,9 +160,9 @@ def handle_request_tcp(client_socket, client_address):
         opcode = message[:3]
         fileLength = message[3:8]
         message = message[3:]
-        print("Opcode: " + opcode)
-        print("File Length: " + fileLength)
-        print("Message: " + message)
+        # print("Opcode: " + opcode)
+        # print("File Length: " + fileLength)
+        # print("Message: " + message)
 
         # From here redirect to corresponding request handler
         if opcode == PUT_OPCODE:
