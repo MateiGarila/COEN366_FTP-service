@@ -231,11 +231,11 @@ def handle_udp_request(client_socket, client_address):
 
 
 def start_client_udp(server_socket, client_address):
-    print(f'TCP Connection has been established with {str(client_address)}')
+    # print(f'UDP Connection has been established with {str(client_address)}')
     handle_udp_request(server_socket, client_address)
 
 
 def server_send_udp(server_socket, message):
     data, client_address = server_socket.recvfrom(1024)
-    print(server_socket, message, client_address)
+    # print(server_socket, message, client_address)
     server_socket.sendto(message.encode(), client_address)

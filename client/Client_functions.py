@@ -116,7 +116,7 @@ def handle_server_tcp(client_socket):
         # Need better handling
         opcode = message[:3]
         message = message[3:]
-        print(opcode)
+        # print(opcode)
 
         # From here redirect to corresponding request handler
         if opcode == CORRECT_PUT_CHANGE:
@@ -149,7 +149,7 @@ def handle_server_udp(client_socket):
         # Need better handling
         opcode = message[:3]
         message = message[3:]
-        print(opcode)
+        # print(opcode)
 
         # From here redirect to corresponding request handler
         if opcode == CORRECT_PUT_CHANGE:

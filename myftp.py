@@ -1,4 +1,6 @@
 import threading
+import time
+
 from server.Server import main as start_server
 from client.Client import main as start_client
 
@@ -18,10 +20,10 @@ def get_user_input():
 
 
 if __name__ == '__main__':
-    get_user_input()
-    # ip = '127.0.0.1'
-    # port = 12000
-    # protocol = '2'
+    # get_user_input()
+    ip = '127.0.0.1'
+    port = 12000
+    protocol = '2'
 
     # Start the server and client in separate threads
     server_thread = threading.Thread(target=start_server, args=(ip, port, protocol))
