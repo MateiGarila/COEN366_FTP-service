@@ -23,7 +23,7 @@ if __name__ == '__main__':
     # TCP testing
     # ip = '127.0.0.1'
     # port = 12000
-    # protocol = '2'
+    # protocol = '1'
 
     # UDP testing
     # ip = '127.0.0.2'
